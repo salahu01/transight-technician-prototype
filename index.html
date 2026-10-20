@@ -1213,15 +1213,6 @@ DB.jobs=[
   {id:"a1f0b2c3-1111-4a2b-9c3d-000000008905",job_type:"replacement",status:"saved",priority:"high",vehicle_number:"DL8CAF9876",customer_name:"Vikram Singh Chauhan",customer_phone:"+919988776543",current_step:3,created_at:ago(9),form_data:{}},
 ];
 
-/* My Installations — the app's own mock list (no API in the app) */
-const INSTALLS=[
-  {id:"INST-8821",veh:"Maruti Suzuki Swift Dzire",num:"KL 43 AH 7050",cust:"KSRTC Fleet Division (Rajesh Menon)",dev:"Discovery 4G",date:"Today, 09:10 AM",st:"Completed",t:0},
-  {id:"INST-8817",veh:"Hyundai Creta SX",num:"MH 12 AB 1234",cust:"Priya Sharma (Sunshine Cabs)",dev:"iCompass 2G",date:"Yesterday, 04:40 PM",st:"Pending Review",t:1},
-  {id:"INST-8809",veh:"Tata Nexon XZ+",num:"KA 01 MN 5678",cust:"Suresh Babu (Rajesh Logistics)",dev:"Discovery 4G",date:"Yesterday, 11:05 AM",st:"Completed",t:2},
-  {id:"INST-8792",veh:"Honda City ZX",num:"TN 09 CD 4321",cust:"Anitha Lakshmi",dev:"Discovery 4G",date:"2 days ago",st:"Completed",t:3},
-  {id:"INST-8780",veh:"Mahindra Scorpio N",num:"DL 8C AF 9876",cust:"Vikram Singh Chauhan",dev:"iCompass 2G",date:"3 days ago",st:"Pending Review",t:4},
-  {id:"INST-8764",veh:"Kia Seltos GTX",num:"KA 05 MJ 4420",cust:"Meera Reddy",dev:"Discovery 4G",date:"5 days ago",st:"Completed",t:5},
-];
 /* Replace Device — existingAccountDirectory (demo OTP 4820) */
 const OWNERS=[
   {name:"Rajesh Kumar Menon",co:"KSRTC Fleet Division",ph:"+91 94470 12345",dealer:"Thrissur Autoworks & Telematics",dist:"Kerala Telematics Hub (Central Zone)",n:14},
@@ -1253,6 +1244,7 @@ const VLTD_CMDS=[
 
 /* routes the app calls that need app-shaped responses (prepended → take precedence) */
 ROUTES.unshift(
+  ["GET",/^\/jobs\/$/,(m,q)=>{const ps=+q.page_size||12,p=+q.page||1,all=DB.jobs.filter(j=>j.status!=="discarded"&&(!q.status||j.status===q.status));return[200,{count:all.length,total_pages:Math.max(1,Math.ceil(all.length/ps)),current_page:p,page_size:ps,results:all.slice((p-1)*ps,p*ps).map(({form_data,...j})=>j)}]}],
   ["POST",/^\/forgot-password\/otp\/send\/$/,(m,q,b)=>b.username?[200,{message:"OTP sent",otp_send:true}]:[400,{username:["This field is required."]}]],
   ["GET",/^\/device\/gps-check\/$/,(m,q)=>{const d=devQ(q);if(!d)return[404,{error:"Device not found"}];const fix=!SIM.gpsFail?.[d.imei];return[200,{imei:d.imei,has_data:true,checks:[pass("gps_fix","GPS Fix",fix?1:0,fix?"pass":"fail"),pass("gps_coordinates","GPS Coordinates",{latitude:9.9816,longitude:76.2999})]}]}],
   ["GET",/^\/device\/power-check\/$/,(m,q)=>{const d=devQ(q);if(!d)return[404,{error:"Device not found"}];return[200,{imei:d.imei,has_data:true,power:1,checks:[pass("main_power_voltage","Main Power Voltage",12.4,"pass",{note:null}),pass("internal_battery_voltage","Internal Battery Voltage",3.9)]}]}],
@@ -1336,7 +1328,7 @@ function heroSVG(fam,st={}){const c=fam==="comp";const sig=st.sig??3,p=st.pwr!==
 /* ---------- state ---------- */
 function init(){$$(".sheet").forEach(e=>e.remove());$("#island").className="island";
   S={scr:null,tok:null,rt:null,me:null,haptics:true,fam:null,fbWarned:0,loginErr:null,
-    saved:null,savedErr:null,jf:"all",jq:"",iq:"",ifl:"All",isort:"Newest First",help:-1,
+    saved:null,savedErr:null,inst:null,instErr:null,jf:"all",jq:"",iq:"",ifl:"All",isort:"Newest First",help:-1,
     ins:null,rep:null,cmd:null,vl:null,perm:{}};
   SIM.gpsFail={"868329085923443":true};
   netLbl();go("splash")}
@@ -1372,7 +1364,7 @@ A.login=()=>{const lb=$("#lb");
   $("#fp").onclick=forgotSheet;$("#envc").onclick=apiSheet;
   $("#lf").onsubmit=async ev=>{ev.preventDefault();S.lu=$("#lu").value.trim();S.lp=$("#lp").value;S.luErr=S.lu?"":"Enter your username";S.lpErr=S.lp?"":"Enter your password";if(S.luErr||S.lpErr){S.loginErr=null;SFX.err();rerender();return}lb.disabled=true;lb.innerHTML=`<span class="spin"></span> Signing in`;
     try{const d=await api("POST","/login/",{username:S.lu,password:S.lp,platform:CFG.platform,device_id:"proto-"+navigator.userAgent.length,device_name:"iPhone 17 Pro"});
-      S.tok=d.access_token||d.access;S.rt=d.refresh_token||d.refresh;S.loginErr=null;
+      S.tok=d.access_token||d.access;S.inst=null;S.saved=null;S.rt=d.refresh_token||d.refresh;S.loginErr=null;
       S.me={...TECH,first_name:d.firstname||TECH.first_name,last_name:d.lastname??TECH.last_name,profile_pic:d.profile_pic??null};
       api("GET","/profile/").then(p=>{S.me=p}).catch(()=>{});
       SFX.success();island(`Welcome, ${S.me.first_name}`,d.group?`Signed in as ${d.group}`:"Signed in","check","var(--ok)");go("home")}
@@ -1429,7 +1421,7 @@ function apiSheet(){const paint=s=>{s.querySelector(".apb").innerHTML=`<div clas
     <div class="row"><span class="t-label up mute">Recent calls</span><span class="t-label mute">${NET.length}</span></div>
     <div class="list-in" style="max-height:250px">${NET.length?NET.slice(0,25).map((r,i)=>`<button class="netr press" data-n="${i}"><span class="mth ${r.m}">${r.m}</span><span class="stack-1" style="min-width:0"><span class="p">${esc(r.path)}</span><span class="t-label mute">${r.src} · ${r.ms} ms</span></span><span class="t-num ${String(r.st).startsWith("2")?"ok-t":"warn-t"}">${r.st}</span></button>`).join(""):`<div class="empty" style="padding:12px">${ic("code","l")}<span class="t-meta mute">No calls yet</span></div>`}</div>
     <button class="btn brand press" data-close>Done</button>`;
-    segBind(s,"[data-seg=am]",v=>{CFG.live=v==="live";S.fbWarned=0;netLbl();island(CFG.live?"Live API on":"Demo server on",CFG.live?CFG.base.replace(/^https?:\/\//,""):"Responses mocked from postman-v6","server",CFG.live?"var(--ok)":"var(--amb)");if(S.scr==="login")rerender()});
+    segBind(s,"[data-seg=am]",v=>{CFG.live=v==="live";S.inst=null;S.saved=null;S.fbWarned=0;netLbl();island(CFG.live?"Live API on":"Demo server on",CFG.live?CFG.base.replace(/^https?:\/\//,""):"Responses mocked from postman-v6","server",CFG.live?"var(--ok)":"var(--amb)");if(S.scr==="login")rerender()});
     s.querySelector("#ab").onchange=e=>{CFG.base=e.target.value.trim()};
     s.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>netDetail(NET[+b.dataset.n]));
     s.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeSheet(s))};
@@ -1450,29 +1442,34 @@ function keepFocus(id){const n=$("#"+id);if(n){n.focus();n.setSelectionRange(n.v
 function optionSheet(title,opts,cur,cb){sheet(`<b class="t-title">${title}</b><div class="txcard">${opts.map(o=>`<button class="set press" data-o="${esc(o)}"><span class="main"><b class="t-num">${o}</b></span>${o===cur?`<span class="tile xs ok" style="width:24px;height:24px">${ic("check","xs")}</span>`:""}</button>`).join("")}</div><button class="btn ghost press" data-close>Cancel</button>`,
   s=>s.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{hap("select");closeSheet(s);cb(b.dataset.o)}))}
 
-/* =================== INSTALLATIONS (My Installations) =================== */
-R.inst=()=>{const q=S.iq.trim().toLowerCase();let L=INSTALLS.filter(i=>S.ifl==="All"||i.st===S.ifl);
-  if(q)L=L.filter(i=>(i.id+i.veh+i.num+i.cust+i.dev).toLowerCase().includes(q));
-  L=[...L].sort(S.isort==="Oldest First"?(a,b)=>b.t-a.t:S.isort==="Vehicle A–Z"?(a,b)=>a.veh.localeCompare(b.veh):(a,b)=>a.t-b.t);
+/* =================== INSTALLATIONS (My Installations) ===================
+   Real data only: GET /technician/jobs/?status=completed. No sample rows. */
+async function loadInst(force){if(S.inst&&!force)return;S.instErr=null;
+  try{const d=await api("GET","/jobs/?status=completed&page=1&page_size=50");S.inst=d.results;S.instCount=d.count}catch(e){S.instErr=e}if(S.scr==="inst")rerender()}
+const jobTypeL=t=>t==="installation"?"Installation":t==="replacement"?"Replacement":t==="maintenance"?"Maintenance":"Job";
+const whenL=iso=>{const d=new Date(iso),t=savedAgo(iso);return t==="Today"||t==="Yesterday"?t+", "+d.toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"}).toUpperCase():d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})};
+R.inst=()=>{const J=S.inst,q=S.iq.trim().toLowerCase();let L=J||[];
+  if(q)L=L.filter(j=>(j.id+j.vehicle_number+fmtReg(j.vehicle_number)+(j.customer_name||"")+jobTypeL(j.job_type)).toLowerCase().includes(q));
+  L=[...L].sort(S.isort==="Oldest First"?(a,b)=>new Date(a.created_at)-new Date(b.created_at):S.isort==="Vehicle A–Z"?(a,b)=>String(a.vehicle_number).localeCompare(b.vehicle_number):(a,b)=>new Date(b.created_at)-new Date(a.created_at));
   return`${cbar("My Installations")}<h1 class="t-title st">My Installations</h1>
   <div class="srch st"><div class="field grow">${ic("search","s")}<input id="iq" placeholder="Search installations…" value="${esc(S.iq)}">${S.iq?`<button id="iqx" aria-label="Clear search">${ic("close","s")}</button>`:""}</div>
-    <button class="icon-btn press ovv" id="ifl" aria-label="Filter installations${S.ifl!=="All"?" (active)":""}">${ic("filter","s")}${S.ifl!=="All"?`<span class="nd"></span>`:""}</button>
     <button class="icon-btn press ovv" id="isrt" aria-label="Sort installations${S.isort!=="Newest First"?" (active)":""}">${ic("tuning","s")}${S.isort!=="Newest First"?`<span class="nd"></span>`:""}</button></div>
-  <div class="row st"><span class="t-meta mute">${L.length} installation${L.length===1?"":"s"}${q?` matching "${esc(S.iq)}"`:""}</span><span class="t-label mute">${S.ifl==="All"?S.isort:S.ifl+" · "+S.isort}</span></div>
-  ${L.length?`<div class="stack st">${L.map((i,k)=>`<button class="itile press" data-in="${i.id}"><span class="ini-s">${initials(i.cust.replace(/\(.*\)/,""))}</span>
-      <span class="stack-1" style="min-width:0"><span class="row" style="gap:8px"><b class="t-num ell">${i.veh}</b>${bd(i.st,i.st==="Completed"?"ok":"amb")}</span><span class="t-label mute t-mono ell">${i.id} · ${i.num} · ${i.dev}</span><span class="row" style="gap:8px"><span class="t-meta ell">${esc(i.cust)}</span><span class="t-label mute" style="white-space:nowrap">${i.date}</span></span></span></button>`).join("")}</div>`
-   :`<div class="empty st">${ic("search","l")}<b class="t-h">${q?`No installations matching "${esc(S.iq)}"`:"No installations found."}</b>${q?`<button class="btn ghost sm press" id="iqx2">Clear search</button>`:""}</div>`}
+  ${S.instErr?errBox({message:S.instErr.message||"Something went wrong.",status:S.instErr.status},"irt")
+   :!J?skelRows(4,84)
+   :`<div class="row st"><span class="t-meta mute">${L.length} installation${L.length===1?"":"s"}${q?` matching "${esc(S.iq)}"`:""}</span><span class="t-label mute">${S.isort}</span></div>
+    ${L.length?`<div class="stack st">${L.map(j=>`<button class="itile press" data-in="${j.id}"><span class="ini-s">${initials(j.customer_name||"?")}</span>
+      <span class="stack-1" style="min-width:0"><span class="row" style="gap:8px">${plate(j.vehicle_number)}${bd("Completed","ok")}</span><span class="t-label mute t-mono ell">#${j.id.slice(0,8).toUpperCase()} · ${jobTypeL(j.job_type)}</span><span class="row" style="gap:8px"><span class="t-meta ell">${esc(j.customer_name||"—")}</span><span class="t-label mute" style="white-space:nowrap">${whenL(j.created_at)}</span></span></span></button>`).join("")}</div>`
+     :`<div class="empty st">${ic("search","l")}<b class="t-h">${q?`No installations matching "${esc(S.iq)}"`:"No installations found."}</b><span class="t-meta mute">${q?"Try a vehicle number or customer name.":"Completed jobs from GET /technician/jobs/?status=completed appear here."}</span>${q?`<button class="btn ghost sm press" id="iqx2">Clear search</button>`:""}</div>`}`}
   <button class="fab press" id="ifab" aria-label="Start New Installation">${ic("plus")}</button>`};
-A.inst=()=>{const q=$("#iq");q.oninput=()=>{S.iq=q.value;clearTimeout(A.it);A.it=setTimeout(()=>{rerender();keepFocus("iq")},220)};
+A.inst=()=>{loadInst();const q=$("#iq");q.oninput=()=>{S.iq=q.value;clearTimeout(A.it);A.it=setTimeout(()=>{rerender();keepFocus("iq")},220)};
   [$("#iqx"),$("#iqx2")].forEach(b=>b&&(b.onclick=()=>{S.iq="";rerender()}));
-  $("#ifl").onclick=()=>optionSheet("Filter By",["All","Completed","Pending Review"],S.ifl,v=>{S.ifl=v;rerender()});
+  $("#irt")&&($("#irt").onclick=()=>{S.inst=null;rerender();loadInst(1)});
   $("#isrt").onclick=()=>optionSheet("Sort By",["Newest First","Oldest First","Vehicle A–Z"],S.isort,v=>{S.isort=v;rerender()});
   $("#ifab").onclick=startInstall;
-  V.querySelectorAll("[data-in]").forEach(b=>b.onclick=()=>{const i=INSTALLS.find(x=>x.id===b.dataset.in);
-    sheet(`<div class="row"><b class="t-title">Installation Details</b>${bd(i.st,i.st==="Completed"?"ok":"amb")}</div>
-      <div class="card" style="display:grid;gap:12px;justify-items:center;padding:18px">${plate(i.num.replace(/\s/g,""),1)}<b class="t-h">${i.veh}</b></div>
-      <div class="txcard">${[["ID",i.id],["Vehicle",`${i.veh} (${i.num})`],["Customer",i.cust],["Device",i.dev],["Date",i.date],["Status",i.st]].map(([k,v])=>`<div class="kvr"><span class="t-meta mute">${k}</span><b class="t-num">${esc(v)}</b></div>`).join("")}</div>
-      <button class="btn ghost press" data-close>Close</button>`)})};
+  V.querySelectorAll("[data-in]").forEach(b=>b.onclick=async()=>{const j=S.inst.find(x=>x.id===b.dataset.in);
+    const s=sheet(`<div class="row"><b class="t-title">Installation Details</b>${bd("Completed","ok")}</div><div class="card" style="display:grid;gap:12px;justify-items:center;padding:18px">${plate(j.vehicle_number,1)}</div><div class="txcard" id="idt">${skelRows(1,140).replace("skel st","skel")}</div><button class="btn ghost press" data-close>Close</button>`);
+    try{const d=await api("GET",`/jobs/${j.id}/`);s.querySelector("#idt").innerHTML=[["ID",d.id],["Vehicle",fmtReg(d.vehicle_number)],["Customer",d.customer_name],["Phone",d.customer_phone],["Type",jobTypeL(d.job_type)],["Date",whenL(d.created_at)],["Status",d.status]].map(([k,v])=>`<div class="kvr"><span class="t-meta mute">${k}</span><b class="t-num">${esc(v||"—")}</b></div>`).join("")}
+    catch(e){s.querySelector("#idt").innerHTML=errBox(e)}})};
 
 /* =================== JOBS (Saved Jobs) =================== */
 async function loadSaved(force){if(S.saved&&!force)return;S.savedErr=null;
