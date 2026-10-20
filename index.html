@@ -1264,17 +1264,12 @@ DB.devices={
 DB.alerts={"860733242437755":[[1,"10:15"]],"8625784151165786":[[1,"10:15"]],"869505044544203":[[1,"10:15"]],"868329085923443":[[7,"10:15"],[1,"10:14"]],"866123456789012":[[7,"10:15"],[1,"10:14"]],"860012345678906":[[1,"10:10"]]};
 Object.keys(DB.devices).forEach(k=>{SIM.ign[k]=1});
 
-/* Saved Jobs (GET /technician/jobs/saved/) — drafts only, the Jobs tab's real data */
-DB.jobs=[
-  {id:"a1f0b2c3-1111-4a2b-9c3d-000000008901",job_type:"installation",status:"saved",priority:"high",vehicle_number:"KL07CD8899",customer_name:"Rajesh Kumar Menon",customer_phone:"+919447012345",current_step:3,created_at:ago(0,2),
-    form_data:{series:"comp",imei:"860733242437755"}},
-  {id:"a1f0b2c3-1111-4a2b-9c3d-000000008902",job_type:"replacement",status:"saved",priority:"medium",vehicle_number:"MH12AB1234",customer_name:"Priya Sharma",customer_phone:"+919876543210",current_step:2,created_at:ago(1,3),form_data:{}},
-  {id:"a1f0b2c3-1111-4a2b-9c3d-000000008903",job_type:"installation",status:"saved",priority:"medium",vehicle_number:"KA05MJ4420",customer_name:"Meera Reddy",customer_phone:"+919847011223",current_step:2,created_at:ago(1,6),
-    form_data:{series:"disc",imei:"869505044544203"}},
-  {id:"a1f0b2c3-1111-4a2b-9c3d-000000008904",job_type:"installation",status:"saved",priority:"high",vehicle_number:"TN07BV1190",customer_name:"Suresh Babu",customer_phone:"+919495012345",current_step:4,created_at:ago(3),
-    form_data:{series:"disc",imei:"8625784151165786"}},
-  {id:"a1f0b2c3-1111-4a2b-9c3d-000000008905",job_type:"replacement",status:"saved",priority:"high",vehicle_number:"DL8CAF9876",customer_name:"Vikram Singh Chauhan",customer_phone:"+919988776543",current_step:3,created_at:ago(9),form_data:{}},
-];
+/* Demo server jobs: no sample drafts. Starts empty; what you save or delete is kept in this
+   browser (localStorage) so it survives reloads, like a real server would. */
+const DEMO_KEY="transight-proto-jobs-v1";
+DB.jobs=(()=>{try{const j=JSON.parse(localStorage.getItem(DEMO_KEY)||"[]");return Array.isArray(j)?j:[]}catch{return[]}})();
+function persistJobs(){DB.jobs=DB.jobs.filter(j=>j.status!=="discarded");try{localStorage.setItem(DEMO_KEY,JSON.stringify(DB.jobs))}catch{}}
+const _mock=mock;mock=function(m,url,b){const r=_mock(m,url,b);if(m!=="GET"&&/^\/jobs\//.test(url))persistJobs();return r};
 
 /* Replace Device — existingAccountDirectory (demo OTP 4820) */
 const OWNERS=[
