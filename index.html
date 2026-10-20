@@ -1163,7 +1163,7 @@ async function api(m,path,body,_retry){
       const r=await fetch(CFG.base.replace(/\/$/,"")+CFG.prefix+path,{method:m,signal:ctl.signal,headers:{"Accept":"application/json",...(body?{"Content-Type":"application/json"}:{}),...(S.tok?{Authorization:"Bearer "+S.tok}:{})},body:body?JSON.stringify(body):undefined});
       clearTimeout(to);status=r.status;const tx=await r.text();env=tx?JSON.parse(tx):envOk(null,204);
       if(status===401&&!_retry&&S.rt&&!/token\/refresh|login/.test(path)){try{const d=await api("POST","/token/refresh/",{refresh:S.rt},1);S.tok=d.access||d.access_token;return api(m,path,body,1)}catch{forceLogout();throw Object.assign(new Error("Session expired. Please sign in again."),{status:401})}}
-    }catch(e){if(e.status)throw e;rec.src="demo · fallback";if(!S.fbWarned){S.fbWarned=1;island("Live API unreachable","Showing demo data · CORS or offline","server","var(--amb)",3800)}}}
+    }catch(e){if(e.status)throw e;rec.src="demo · fallback";S.fbWarned=1;}}
   if(!env){await sleep(260+Math.random()*320);[status,env]=mock(m,path,body)}
   rec.st=status;rec.ms=Math.round(performance.now()-t0);rec.res=env;netLbl();
   if(env&&env.success)return env.data;
@@ -1171,7 +1171,7 @@ async function api(m,path,body,_retry){
 /* field-level error helper (errors = DRF body) */
 const fieldErr=(e,k)=>e&&e.errors&&Array.isArray(e.errors[k])?e.errors[k][0]:"";
 const famOf=d=>d&&/compass|c4g|ais/i.test(d.device_series+" "+d.device_model)?"comp":"disc";
-function netLbl(){const l=$("#netlbl");if(l)l.textContent=`API · ${CFG.live?"Live":"Demo"} · ${NET.length}`}
+function netLbl(){const l=$("#netlbl");if(l)l.textContent=`API · ${CFG.live?(S&&S.fbWarned?"Live (unreachable → demo)":"Live"):"Demo"} · ${NET.length}`}
 /* =====================================================================
    SEED aligned to the Flutter app (lib/ui/**) — the source of truth.
    Test IMEIs, owner directory, conflict directory, installations list,
@@ -1356,12 +1356,10 @@ R.login=()=>{const e=S.loginErr;return`<div class="brandbg"></div><form class="l
     <div class="field ${S.lpErr||(e&&!fieldErr(e,"username"))?"err":""}">${ic("lock","s")}<input id="lp" type="password" value="${esc(S.lp??"TechPass@123")}" placeholder="Password"><button type="button" id="eye" aria-label="Show password">${ic("eye","s")}</button></div>
     ${S.lpErr?`<span class="err-msg">${ic("warning","xs")} ${S.lpErr}</span>`:e?`<span class="err-msg">${ic("warning","xs")} ${esc(e.message||"Sign-in failed")}</span>`:""}</div>
   <div style="margin-top:auto" class="stack st">
-    <button class="btn brand press" id="lb" type="submit">Continue ${ic("arrow-right","s")}</button>
-    <div class="row" style="justify-content:center"><button type="button" class="envchip ${CFG.live?"live":""}" id="envc"><span class="d"></span>${CFG.live?"Live API · "+esc(CFG.base.replace(/^https?:\/\//,"")):"Demo server · tap to connect live"}</button></div>
-    <span class="t-label mute" style="text-align:center">Tip: a password containing “wrong” shows the 401 envelope</span></div></form>`};
+    <button class="btn brand press" id="lb" type="submit">Continue ${ic("arrow-right","s")}</button></div></form>`};
 A.login=()=>{const lb=$("#lb");
   $("#eye").onclick=()=>{const p=$("#lp");p.type=p.type==="password"?"text":"password";hap("select")};
-  $("#fp").onclick=forgotSheet;$("#envc").onclick=apiSheet;
+  $("#fp").onclick=forgotSheet;
   $("#lf").onsubmit=async ev=>{ev.preventDefault();S.lu=$("#lu").value.trim();S.lp=$("#lp").value;S.luErr=S.lu?"":"Enter your username";S.lpErr=S.lp?"":"Enter your password";if(S.luErr||S.lpErr){S.loginErr=null;SFX.err();rerender();return}lb.disabled=true;lb.innerHTML=`<span class="spin"></span> Signing in`;
     try{const d=await api("POST","/login/",{username:S.lu,password:S.lp,platform:CFG.platform,device_id:"proto-"+navigator.userAgent.length,device_name:"iPhone 17 Pro"});
       S.tok=d.access_token||d.access;S.inst=null;S.saved=null;S.rt=d.refresh_token||d.refresh;S.loginErr=null;
@@ -1421,7 +1419,7 @@ function apiSheet(){const paint=s=>{s.querySelector(".apb").innerHTML=`<div clas
     <div class="row"><span class="t-label up mute">Recent calls</span><span class="t-label mute">${NET.length}</span></div>
     <div class="list-in" style="max-height:250px">${NET.length?NET.slice(0,25).map((r,i)=>`<button class="netr press" data-n="${i}"><span class="mth ${r.m}">${r.m}</span><span class="stack-1" style="min-width:0"><span class="p">${esc(r.path)}</span><span class="t-label mute">${r.src} · ${r.ms} ms</span></span><span class="t-num ${String(r.st).startsWith("2")?"ok-t":"warn-t"}">${r.st}</span></button>`).join(""):`<div class="empty" style="padding:12px">${ic("code","l")}<span class="t-meta mute">No calls yet</span></div>`}</div>
     <button class="btn brand press" data-close>Done</button>`;
-    segBind(s,"[data-seg=am]",v=>{CFG.live=v==="live";S.inst=null;S.saved=null;S.fbWarned=0;netLbl();island(CFG.live?"Live API on":"Demo server on",CFG.live?CFG.base.replace(/^https?:\/\//,""):"Responses mocked from postman-v6","server",CFG.live?"var(--ok)":"var(--amb)");if(S.scr==="login")rerender()});
+    segBind(s,"[data-seg=am]",v=>{CFG.live=v==="live";S.inst=null;S.saved=null;S.fbWarned=0;netLbl();if(S.scr==="login")rerender()});
     s.querySelector("#ab").onchange=e=>{CFG.base=e.target.value.trim()};
     s.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>netDetail(NET[+b.dataset.n]));
     s.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeSheet(s))};
@@ -1538,13 +1536,10 @@ R.profile=()=>{const m=S.me||TECH,nm=m.legal_name||[m.first_name,m.last_name].fi
     <button class="set press" id="pfp"><span class="tile">${ic("key","s")}</span><span class="main"><b class="t-num">Forgot Password</b><span class="t-meta mute">Reset it with an OTP</span></span>${ic("chevron","s")}</button>
     <button class="set press" id="phg"><span class="tile">${ic("help","s")}</span><span class="main"><b class="t-num">Help / Installation Guide</b><span class="t-meta mute">Step-by-step guide &amp; FAQ</span></span>${ic("chevron","s")}</button>
     <button class="set press" id="pcs"><span class="tile">${ic("phone","s")}</span><span class="main"><b class="t-num">Contact Support</b><span class="t-meta mute">Call, or chat on WhatsApp</span></span>${ic("chevron","s")}</button></div>
-  <div class="txcard st">
-    <div class="set"><span class="tile">${ic("volume","s")}</span><span class="main"><b class="t-num">Sound</b><span class="t-meta mute">Prototype only</span></span>${tgl("tgs",!muted)}</div>
-    <button class="set press" id="papi"><span class="tile">${ic("server","s")}</span><span class="main"><b class="t-num">API connection</b><span class="t-meta mute">${CFG.live?"Live":"Demo server"} · ${NET.length} calls · prototype only</span></span>${ic("chevron","s")}</button></div>
   <button class="btn ghost press st" id="pso">${ic("logout","s")} Logout</button>
   <span class="t-label mute st" style="text-align:center">v${CFG.version} (11)</span>`};
 A.profile=()=>{if(!A.profile.loaded){A.profile.loaded=1;api("GET","/profile/").then(p=>{S.me=p;if(S.scr==="profile")rerender()}).catch(()=>{})}
-  $("#pfp").onclick=forgotSheet;$("#phg").onclick=()=>go("help");$("#pcs").onclick=supportSheet;$("#papi").onclick=apiSheet;$("#tgs").onclick=()=>{setMute(!muted);rerender()};
+  $("#pfp").onclick=forgotSheet;$("#phg").onclick=()=>go("help");$("#pcs").onclick=supportSheet;
   $("#pso").onclick=()=>confirmSheet({icon:"logout",title:"Logout?",body:"Are you sure want to logout?",ok:"Yes, Logout",run:async()=>{await api("POST","/logout/",{refresh:S.rt});SFX.bye();S.tok=null;A.profile.loaded=0;go("login","b")}})};
 
 /* ---------- shared: permission gate + photo art ---------- */
@@ -1579,7 +1574,7 @@ const W2=()=>S.ins;
 R.install=()=>{const w=W2();if(w.loading)return`<div class="stack center" style="margin:auto">${ic("refresh","l")}<span class="t-meta mute">Loading saved progress…</span></div>`;
   const ttl=w.stage===0?"New Installation":w.fam==="comp"?"iCompass Installation":"Discovery Installation";
   if(w.stage===6)return insSuccess();
-  return`<div class="wtop st"><button class="icon-btn press" id="ibk" aria-label="Back">${ic("arrow-left","s")}</button><span class="ttl"><span class="t-label up mute">${w.stage?`Step ${w.stage} of 5`:"Start"}</span><b class="t-h">${ttl}</b></span><button class="icon-btn press" id="iapi" aria-label="API log">${ic("code","s")}</button></div>
+  return`<div class="wtop st"><button class="icon-btn press" id="ibk" aria-label="Back">${ic("arrow-left","s")}</button><span class="ttl"><span class="t-label up mute">${w.stage?`Step ${w.stage} of 5`:"Start"}</span><b class="t-h">${ttl}</b></span><span style="width:44px"></span></div>
   ${w.stage?`<div class="stepper st">${INS_STEPS.map((l,i)=>`<span class="sp ${i+1<w.stage?"done":i+1===w.stage?"cur":""}"><i>${i+1<w.stage?ic("check","xs"):i+1}</i><small>${l}</small></span>`).join("")}</div>`:""}
   ${[insSeries,insDevice,insSim,insAcct,insVeh,insReport][w.stage]()}
   ${w.stage>=1&&w.stage<=4?`<div class="dock"><button class="btn brand press" id="inx" ${insFooter().dis?"disabled":""}>${w.busy?`<span class="spin"></span>`:""} ${insFooter().l}</button></div>`:""}`};
@@ -1593,7 +1588,7 @@ async function insNext(){const w=W2();w.busy=true;rerender();
   try{const d=await api("POST","/jobs/save/",{...(w.id?{id:w.id}:{}),job_type:"installation",priority:"medium",customer_name:w.acct.linked?.name||"",customer_phone:w.acct.linked?.phone||"",vehicle_number:(w.veh.reg||"").replace(/\s/g,""),current_step:w.stage+1,form_data:{series:w.fam,imei:w.dev?.imei,sim:w.sim,account:w.acct.linked,vehicle:w.veh.v}});w.id=d.id||w.id}catch{}
   w.busy=false;w.stage++;hap("medium");S.saved=null;go("install")}
 A.install=()=>{const w=W2();if(w.loading)return;
-  $("#ibk")&&($("#ibk").onclick=leaveSheet);$("#iapi")&&($("#iapi").onclick=apiSheet);
+  $("#ibk")&&($("#ibk").onclick=leaveSheet);
   $("#inx")&&($("#inx").onclick=()=>insFooter().act());
   ({0:aSeries,1:aDevice,2:aSim,3:aAcct,4:aVeh,5:aReport,6:aSuccess})[w.stage]()};
 function leaveSheet(){const w=W2();sheet(`<b class="t-title">Leaving?</b><p class="t-body mute">Your progress on this installation can be saved as a draft in Saved Jobs.</p>
@@ -1872,7 +1867,7 @@ function certSheet(w){const d=w.dev||{},v=w.veh.v||VAAHAN,L=w.acct.linked||{},to
    mirrors lib/ui/replace_device · lib/ui/commands · lib/ui/vltd
    ===================================================================== */
 const stepper=(labels,cur)=>`<div class="stepper st">${labels.map((l,i)=>`<span class="sp ${i+1<cur?"done":i+1===cur?"cur":""}"><i>${i+1<cur?ic("check","xs"):i+1}</i><small>${l}</small></span>`).join("")}</div>`;
-const wtop=(sub,title,id="fbk")=>`<div class="wtop st"><button class="icon-btn press" id="${id}" aria-label="Back">${ic("arrow-left","s")}</button><span class="ttl"><span class="t-label up mute">${sub}</span><b class="t-h ell">${title}</b></span><button class="icon-btn press" id="fapi" aria-label="API log">${ic("code","s")}</button></div>`;
+const wtop=(sub,title,id="fbk")=>`<div class="wtop st"><button class="icon-btn press" id="${id}" aria-label="Back">${ic("arrow-left","s")}</button><span class="ttl"><span class="t-label up mute">${sub}</span><b class="t-h ell">${title}</b></span><span style="width:44px"></span></div>`;
 const kvrows=rows=>`<div class="txcard flat">${rows.map(([k,v,m])=>`<div class="kvr"><span class="t-meta mute">${k}</span><b class="t-num ${m?"t-mono":""}">${esc(v??"—")}</b></div>`).join("")}</div>`;
 
 /* =================== REPLACE DEVICE (fully mock in the app) =================== */
@@ -1881,7 +1876,7 @@ R.replace=()=>{const r=S.rep;const title=r.veh?`${r.veh.reg} Replacement`:"Repla
   if(r.step===4)return repSummary();
   return`${wtop(`Step ${r.step} of 3`,title)}${stepper(["Owner","Vehicle","Install"],r.step)}${[null,repOwner,repVeh,repInstall][r.step]()}
   ${r.step<3?`<div class="dock"><button class="btn brand press" id="rnx" ${(r.step===1?r.ok:r.veh&&r.reason&&(r.reason!=="Other (specify)"||r.other.trim()))?"":"disabled"}>Next ${ic("arrow-right","s")}</button></div>`:""}`};
-A.replace=()=>{const r=S.rep;$("#fbk")&&($("#fbk").onclick=()=>{if(r.step===1){S.fam=null;go("home","b")}else{r.step--;go("replace","b")}});$("#fapi")&&($("#fapi").onclick=apiSheet);
+A.replace=()=>{const r=S.rep;$("#fbk")&&($("#fbk").onclick=()=>{if(r.step===1){S.fam=null;go("home","b")}else{r.step--;go("replace","b")}});
   $("#rnx")&&($("#rnx").onclick=()=>{r.step++;hap("medium");go("replace")});[null,aRepOwner,aRepVeh,aRepInstall,aRepSum][r.step]()};
 function repOwner(){const r=S.rep;
   if(r.ok){const o=r.owner;return`<div class="stack-1 st"><h1 class="t-title">Verify Owner (${esc(o.name)})</h1><span class="t-meta mute">Confirmed by OTP against the registered mobile number.</span></div>
@@ -1960,7 +1955,7 @@ function startCmd(){S.cmd={step:1,fam:null,method:null,imei:"",uin:"",dev:null,e
 const CMD_STEPS=["Identify","Scan","Fix","Report"];
 R.cmd=()=>{const c=S.cmd;return`${wtop(`Step ${c.step} of 4`,"Commands &amp; Diagnostics")}${stepper(CMD_STEPS,c.step)}${[null,cmdIdentify,cmdScan,cmdFix,cmdReport][c.step]()}`};
 A.cmd=()=>{const c=S.cmd;$("#fbk").onclick=()=>{if(c.step===1){if(c.dev)return confirmSheet({icon:"replace",title:"Do you want to change the device?",body:"You'll need to scan or enter the IMEI/UIN again.",ok:"Yes, Change",run:async()=>{c.dev=null;c.imei="";rerender()}});if(c.method&&c.fam==="comp"){c.method=null;return rerender()}if(c.fam){c.fam=null;S.fam=null;c.method=null;setTheme("cmd");return rerender()}S.fam=null;go("home","b")}else if(c.step===3||c.step===4){c.step--;go("cmd","b")}else{c.step=1;go("cmd","b")}};
-  $("#fapi").onclick=apiSheet;[null,aCmdId,aCmdScan,aCmdFix,aCmdRep][c.step]()};
+  [null,aCmdId,aCmdScan,aCmdFix,aCmdRep][c.step]()};
 function cmdIdentify(){const c=S.cmd;
   if(!c.fam)return`<div class="stack-1 st"><h1 class="t-title">Select Device Type</h1><span class="t-meta mute">Select iCompass or Discovery to choose the device.</span></div>
     ${[["comp","iCompass","AIS-140 · dual eSIM"],["disc","Discovery","4G IoT tracker"]].map(([f,t,s])=>`<button class="series press st" data-cf="${f}" data-theme="${f}"><span class="series-art">${heroSVG(f)}</span><span class="row"><span class="stack-1"><b class="t-h">${t}</b><span class="t-meta mute">${s}</span></span><span class="feat-go" style="width:40px;height:40px">${ic("arrow-right","s")}</span></span></button>`).join("")}`;
@@ -2054,7 +2049,7 @@ function aCmdRep(){$("#cse").onclick=async()=>{const b=$("#cse");b.disabled=true
 /* =================== VLTD ACTIVATION (fully mock in the app) =================== */
 function startVltd(){S.vl={step:1,mode:"imei",imei:"",uin:"",veh:"",busy:false,runs:{},con:[]};S.fam="comp";go("vltd")}
 R.vltd=()=>{const v=S.vl;return`${wtop(`Step ${v.step} of 2`,v.step===1?"VLTD Device Identification":"VLTD Activation &amp; Commands")}${stepper(["Identify","Diagnostics"],v.step)}${v.step===1?vlId():vlCmds()}`};
-A.vltd=()=>{const v=S.vl;$("#fbk").onclick=()=>{if(v.step===2){v.step=1;go("vltd","b")}else{S.fam=null;go("home","b")}};$("#fapi").onclick=apiSheet;v.step===1?aVlId():aVlCmds()};
+A.vltd=()=>{const v=S.vl;$("#fbk").onclick=()=>{if(v.step===2){v.step=1;go("vltd","b")}else{S.fam=null;go("home","b")}};v.step===1?aVlId():aVlCmds()};
 function vlId(){const v=S.vl,ok=v.mode==="imei"?v.imei.length>=10:v.uin.length>=6;return`<div class="stack-1 st"><h1 class="t-title">Identify VLTD unit</h1><span class="t-meta mute">Enter the device IMEI or its UIN — either identifies it.</span></div>
   ${seg("vm",[["imei","IMEI Number"],["uin","UIN Number"]],v.mode)}
   ${v.mode==="imei"?`<div class="stack-2 st"><label class="t-label up mute">IMEI Number / Device Serial *</label><div class="field">${ic("barcode","s")}<input id="vi" inputmode="numeric" placeholder="e.g. 868329085923443" value="${esc(v.imei)}" style="font-family:var(--m)"><button class="scanb" id="vsc" aria-label="Scan device barcode to fill this automatically">${v.busy?`<span class="spin"></span>`:ic("qr","s")}</button></div></div>`
