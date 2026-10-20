@@ -590,8 +590,6 @@ h1,h2,h3,p{margin:0}
 .mq{display:grid;gap:12px;padding:14px 12px;border-radius:22px;background:var(--surface);box-shadow:var(--sh-1);text-align:left}
 
 /* ---------- 20. SOURCE-ALIGNED SCREENS ---------- */
-.tabs{grid-template-columns:repeat(5,1fr)!important}.tabs .ind{width:calc((100% - 12px)/5)!important}
-.tabs button .t-label{font-size:10.5px}
 .istats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--sh-1)}
 .istats div{background:var(--surface);padding:12px;display:grid;gap:2px}
 .itile{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:14px;border-radius:20px;background:var(--surface);box-shadow:var(--sh-1);text-align:left;width:100%}
@@ -689,11 +687,6 @@ body.np-on .stage{padding-right:436px}
 .np-l{color:#8b919a;text-transform:uppercase;letter-spacing:.06em;font-size:10px}
 .np-d pre{margin:0;font:500 11px/16px var(--m);color:#c9d1d9;white-space:pre-wrap;word-break:break-all;background:#0a0c0e;border:1px solid #1d2024;border-radius:8px;padding:10px}
 
-/* ---------- 22. TAB INDICATOR SHAPE: curved only at the bar's ends ---------- */
-.tabs .ind{border-radius:14px!important;transition:transform var(--d3) var(--spring),opacity var(--d2),border-radius var(--d2) var(--ease)!important}
-.tabs:has(button.on[data-t=home]) .ind{border-radius:999px 14px 14px 999px!important}
-.tabs:has(button.on[data-t=profile]) .ind{border-radius:14px 999px 999px 14px!important}
-
 /* ---------- 23. SINGLE APP THEME (lib/ui/core/themes/app_colors.dart) ----------
    background #FFFFFF · primary #670824 · onPrimary #FFFFFF · onBackground #131313 · link #2A80F9 */
 .phone[data-theme="app"]{
@@ -708,6 +701,21 @@ body.np-on .stage{padding-right:436px}
   color-scheme:light}
 .login .logo path{fill:var(--acc)}.login .logo .lg-c{fill:var(--acc-2)}
 .login .trust .badge{background:var(--surface-2);color:var(--text)}
+
+/* ---------- 24. BOTTOM NAV: floating capsule, active tab expands into a labelled pill ---------- */
+.tabs{left:16px!important;right:16px!important;bottom:22px!important;height:66px!important;padding:7px!important;gap:4px;border-radius:26px!important;
+  display:flex!important;background:rgba(19,19,19,.94)!important;backdrop-filter:blur(22px) saturate(160%);
+  box-shadow:0 20px 40px -14px #13131380,0 2px 6px #13131333,inset 0 1px 0 #ffffff14!important;border:0!important}
+.tabs .ind{display:none!important}
+.tabs button{flex:1 1 0;min-width:0;display:flex!important;flex-direction:row!important;align-items:center;justify-content:center;gap:6px;padding:0 8px;border-radius:20px;
+  color:#8E8E93!important;background:transparent;transition:flex-grow .5s var(--spring),background-color .3s var(--ease),color .25s}
+.tabs button .ic{width:23px!important;height:23px!important;transition:transform .45s var(--spring)}
+.tabs button .t-label{max-width:0;opacity:0;overflow:hidden;white-space:nowrap;font:700 13px/16px var(--f)!important;letter-spacing:-.01em;transition:max-width .45s var(--ease),opacity .25s}
+.tabs button:not(.on):active .ic{transform:scale(.86)}
+.tabs button.on{flex-grow:3.6;color:#fff!important;background:linear-gradient(180deg,#8E1A3C,#670824);box-shadow:inset 0 1px 0 #ffffff33,0 8px 18px -8px #670824}
+.tabs button.on .t-label{max-width:120px;opacity:1}
+.tabs button.on .ic{animation:navHop .5s var(--spring)}
+@keyframes navHop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 
 </style>
 </head>
