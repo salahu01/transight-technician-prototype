@@ -689,6 +689,11 @@ body.np-on .stage{padding-right:436px}
 .np-l{color:#8b919a;text-transform:uppercase;letter-spacing:.06em;font-size:10px}
 .np-d pre{margin:0;font:500 11px/16px var(--m);color:#c9d1d9;white-space:pre-wrap;word-break:break-all;background:#0a0c0e;border:1px solid #1d2024;border-radius:8px;padding:10px}
 
+/* ---------- 22. TAB INDICATOR SHAPE: curved only at the bar's ends ---------- */
+.tabs .ind{border-radius:14px!important;transition:transform var(--d3) var(--spring),opacity var(--d2),border-radius var(--d2) var(--ease)!important}
+.tabs:has(button.on[data-t=home]) .ind{border-radius:999px 14px 14px 999px!important}
+.tabs:has(button.on[data-t=profile]) .ind{border-radius:14px 999px 999px 14px!important}
+
 </style>
 </head>
 <body>
