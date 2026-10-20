@@ -1454,9 +1454,7 @@ function optionSheet(title,opts,cur,cb){sheet(`<b class="t-title">${title}</b><d
 R.inst=()=>{const q=S.iq.trim().toLowerCase();let L=INSTALLS.filter(i=>S.ifl==="All"||i.st===S.ifl);
   if(q)L=L.filter(i=>(i.id+i.veh+i.num+i.cust+i.dev).toLowerCase().includes(q));
   L=[...L].sort(S.isort==="Oldest First"?(a,b)=>b.t-a.t:S.isort==="Vehicle A–Z"?(a,b)=>a.veh.localeCompare(b.veh):(a,b)=>a.t-b.t);
-  const done=INSTALLS.filter(i=>i.st==="Completed").length;
   return`${cbar("My Installations")}<h1 class="t-title st">My Installations</h1>
-  <div class="istats st"><div><b class="t-num-l">${INSTALLS.length}</b><span class="t-label mute">Total</span></div><div><b class="t-num-l ok-t">${done}</b><span class="t-label mute">Completed</span></div><div><b class="t-num-l amb-t">${INSTALLS.length-done}</b><span class="t-label mute">Pending Review</span></div></div>
   <div class="srch st"><div class="field grow">${ic("search","s")}<input id="iq" placeholder="Search installations…" value="${esc(S.iq)}">${S.iq?`<button id="iqx" aria-label="Clear search">${ic("close","s")}</button>`:""}</div>
     <button class="icon-btn press ovv" id="ifl" aria-label="Filter installations${S.ifl!=="All"?" (active)":""}">${ic("filter","s")}${S.ifl!=="All"?`<span class="nd"></span>`:""}</button>
     <button class="icon-btn press ovv" id="isrt" aria-label="Sort installations${S.isort!=="Newest First"?" (active)":""}">${ic("tuning","s")}${S.isort!=="Newest First"?`<span class="nd"></span>`:""}</button></div>
