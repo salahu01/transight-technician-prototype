@@ -576,19 +576,18 @@ h1,h2,h3,p{margin:0}
 .vid .play{position:absolute;left:50%;top:50%;translate:-50% -50%;width:62px;height:62px;border-radius:50%;background:#fff;color:var(--acc);display:grid;place-items:center;box-shadow:0 10px 30px #0008}
 .vid .bar{position:absolute;left:14px;right:14px;bottom:14px;background:#ffffff33}
 
-/* ---------- 19. HOME BENTO (mirrors lib/ui/home: 2 rows, wide+narrow, swapped) ---------- */
-.view:has(.bento){padding-bottom:116px}
-.bento{flex:1;display:grid;grid-template-rows:1fr 1fr;gap:12px;min-height:440px}
-.brow{display:grid;grid-template-columns:3fr 2fr;gap:12px}
-.brow:last-child{grid-template-columns:2fr 3fr}
-.qt{position:relative;overflow:hidden;border-radius:26px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff;
-  background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--c) 55%,#fff 18%),transparent 60%),linear-gradient(160deg,color-mix(in srgb,var(--c) 88%,#fff 12%),var(--c));
-  box-shadow:inset 0 1px 0 #ffffff33,0 18px 34px -18px var(--c)}
-.qt-art{position:absolute;right:-26px;bottom:-26px;opacity:.13}.qt-art .ic{width:150px;height:150px}
-.qt.n .qt-art .ic{width:110px;height:110px}
-.qt-ic{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;background:#ffffff26;box-shadow:inset 0 0 0 1px #ffffff2e;backdrop-filter:blur(6px)}
-.qt-ar{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ffffff26}
-.qt-tx{position:relative;display:grid;gap:4px}.qt-tx .t-meta{opacity:.82}
+/* ---------- 19. HOME: featured action + trio ---------- */
+.feat{position:relative;flex:1;min-height:300px;border-radius:28px;overflow:hidden;text-align:left;
+  background:radial-gradient(90% 70% at 70% 30%,var(--acc-soft),transparent 70%),linear-gradient(180deg,var(--surface),var(--surface));box-shadow:var(--sh-2),0 0 0 1px var(--hair)}
+.feat .floor{bottom:0;height:120px}
+.feat .hero{bottom:108px;width:300px}
+.feat-top{position:absolute;left:18px;top:18px}
+.feat-top .badge{background:var(--acc);color:var(--acc-ink)}
+.feat-bot{position:absolute;left:18px;right:18px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.feat-go{width:52px;height:52px;flex:none;border-radius:50%;display:grid;place-items:center;background:linear-gradient(180deg,var(--acc-2),var(--acc));color:var(--acc-ink);box-shadow:0 10px 24px -10px var(--acc);transition:transform var(--d2) var(--spring)}
+.feat:hover .feat-go{transform:translateX(4px)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mq{display:grid;gap:12px;padding:14px 12px;border-radius:22px;background:var(--surface);box-shadow:var(--sh-1);text-align:left}
 
 </style>
 </head>
@@ -1253,13 +1252,16 @@ async function loadJobs(force){if(S.jobs&&!force)return;S.jobsErr=null;
   catch(e){S.jobsErr=e}if(["home","jobs"].includes(S.scr))rerender()}
 const greet=()=>{const h=+TODAY.toLocaleString("en-IN",{hour:"numeric",hour12:false,timeZone:"Asia/Kolkata"});return h<12?"Good morning":h<17?"Good afternoon":"Good evening"};
 R.home=()=>`
-  <div class="hello st">${avatarHtml()}<div class="stack-1 grow" style="min-width:0"><b class="t-h ell">${esc(S.me?.first_name||"Ravi")} ${esc(S.me?.last_name||"")}</b><span class="t-meta mute">Technician</span></div>
+  <div class="hello st">${avatarHtml()}<div class="stack-1 grow" style="min-width:0"><span class="t-meta mute">${greet()}</span><b class="t-h ell">${esc(S.me?.first_name||"Ravi")} ${esc(S.me?.last_name||"")}</b></div>
     <button class="icon-btn press ovv" id="bell" aria-label="Alerts">${ic("bell","s")}<span class="nd"></span></button></div>
-  <div class="sec st"><span class="t-label up mute">Quick Actions</span></div>
-  <div class="bento st">
-    <div class="brow">${qaTile("installation","New Installation","Start a new device setup","plus","#B3123F","w")}${qaTile("replacement","Replace Device","Swap an existing device with OTP","replace","#9A2E4C","n")}</div>
-    <div class="brow">${qaTile("commands","Commands","OTA device diagnostics & controls","tuning","#3F0516","n")}${qaTile("vltd","VLTD Activation","Live packet verification & activation commands","radar","#B5566F","w")}</div></div>`;
-const qaTile=(k,l,d,i,c,sz)=>`<button class="qt ${sz} press" data-qa="${k}" style="--c:${c}"><span class="qt-art">${ic(i)}</span><span class="qt-ic">${ic(i)}</span><span class="qt-ar">${ic("arrow-right","xs")}</span><span class="qt-tx"><b class="t-h">${l}</b><span class="t-meta">${d}</span></span></button>`;
+  <h1 class="t-title st">What are we<br>working on today?</h1>
+  <button class="feat press st" data-qa="installation"><span class="floor"></span>
+    <span class="hero idle">${heroSVG(curFam())}</span>
+    <span class="feat-top"><span class="badge t-label">${ic("bolt","xs")} Most used</span></span>
+    <span class="feat-bot"><span class="stack-1"><b class="t-title" style="font-size:24px;line-height:28px">New Installation</b><span class="t-meta mute">Device · SIM · vehicle · certificate</span></span><span class="feat-go">${ic("arrow-right","s")}</span></span></button>
+  <div class="trio st">
+    ${miniQa("replacement","Replace","Swap with OTP","replace","info")}${miniQa("commands","Commands","Remote tests","tuning","amb")}${miniQa("vltd","VLTD","Packet check","radar","ok")}</div>`;
+const miniQa=(k,l,d,i,t)=>`<button class="mq press" data-qa="${k}"><span class="tile ${t}">${ic(i)}</span><span class="stack-1"><b class="t-num">${l}</b><span class="t-label mute">${d}</span></span></button>`;
 A.home=()=>{$("#bell").onclick=alertsSheet;
   V.querySelectorAll("[data-qa]").forEach(b=>b.onclick=()=>{const k=b.dataset.qa;if(k==="installation"||k==="replacement")startWizard(null,k);else{S.famPref=k==="vltd"?"comp":S.famPref;go("diag")}})};
 
