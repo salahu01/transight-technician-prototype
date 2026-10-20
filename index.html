@@ -1078,7 +1078,9 @@ const LOGO=`<svg class="logo" viewBox="0 0 201.3 244.4" aria-label="Transight"><
    · Demo mode = in-browser mock server that returns the exact same envelope
    ===================================================================== */
 const CFG={live:false,base:"https://api.fleet2.transight.net",prefix:"/technician",version:"0.0.11",platform:"ios"};
-const NET=[];const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const NET=[];
+/* RFC-4122 v4; crypto.randomUUID is missing on non-secure origins (file:/data:) */
+const uuid=()=>"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(+c^(crypto.getRandomValues?crypto.getRandomValues(new Uint8Array(1))[0]:Math.random()*256)&15>>+c/4).toString(16));const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const TODAY=new Date("2026-10-20T09:41:00+05:30");
 
 /* ---------- value mappings ---------- */
@@ -1173,7 +1175,7 @@ const ROUTES=[
   ["DELETE",/^\/jobs\/([\w-]+)\/discard\/$/,(m)=>{const j=job(m[1]);if(j)j.status="discarded";return[204,null]}],
   ["POST",/^\/jobs\/([\w-]+)\/complete\/$/,(m,q,b)=>{const j=job(m[1]);if(!j)return[404,{detail:"Not found."}];j.status="completed";j.current_step=7;Object.assign(j.form_data,b.form_data||{});return[200,{message:"Job completed successfully",id:j.id,status:"completed"}]}],
   ["GET",/^\/jobs\/([\w-]+)\/$/,(m)=>job(m[1])?[200,{...job(m[1])}]:[404,{detail:"Not found."}]],
-  ["POST",/^\/jobs\/save\/$/,(m,q,b)=>{let j=b.id&&job(b.id);if(!j){if(!b.job_type)return[400,{job_type:["This field is required."]}];j={id:crypto.randomUUID(),status:"saved",created_at:new Date().toISOString(),form_data:{},...b};DB.jobs.unshift(j)}
+  ["POST",/^\/jobs\/save\/$/,(m,q,b)=>{let j=b.id&&job(b.id);if(!j){if(!b.job_type)return[400,{job_type:["This field is required."]}];j={id:uuid(),status:"saved",created_at:new Date().toISOString(),form_data:{},...b};DB.jobs.unshift(j)}
     const{id,form_data,...rest}=b;Object.assign(j,rest);j.form_data={...j.form_data,...(form_data||{})};if(j.status==="assigned")j.status="saved";return[200,{message:"Job progress saved",id:j.id,current_step:j.current_step,status:j.status}]}],
   ["GET",/^\/device\/details\/$/,(m,q)=>{const d=devQ(q);return d?[200,{...d}]:[404,{error:"No device found for "+(q.search||q.imei)}]}],
   ["GET",/^\/device\/live-telemetry\/$/,(m,q)=>{const d=devQ(q);if(!d)return[404,{error:"Device not found"}];const fam=famOf(d),ig=SIM.ign[d.imei],sig=SIM.netFixed[d.imei]?22:12,al=DB.alerts[d.imei][0][0];
@@ -1202,7 +1204,7 @@ const ROUTES=[
   ["GET",/^\/device\/esim-profiles\/$/,(m,q)=>[200,{imei:q.imei,profiles:[{slot:1,operator:"JIO",iccid:"8991860045678901234",state:"enabled",apn:"jionet"},{slot:2,operator:"BSNL",iccid:"8991400012398765432",state:"disabled",apn:"bsnlnet"},{slot:3,operator:"Airtel",iccid:"8991100055501234567",state:"disabled",apn:"airtelgprs.com"}]}]],
   ["GET",/^\/customers\/search\/$/,(m,q)=>{const s=(q.search||"").toLowerCase();return[200,DB.customers.filter(c=>!s||(c.customer_name+c.company_name+c.mobile_number).toLowerCase().includes(s))]}],
   ["POST",/^\/customers\/create\/send-otp\/$/,(m,q,b)=>!b.customer_name?[400,{customer_name:["This field is required."]}]:!/^\+?\d{10,13}$/.test(b.mobile_number||"")?[400,{mobile_number:["Enter a valid mobile number."]}]:[200,{message:"OTP sent to "+b.mobile_number}]],
-  ["POST",/^\/customers\/create\/verify-otp\/$/,(m,q,b)=>b.otp===SIM.otp?[201,{message:"Customer created",id:crypto.randomUUID()}]:[400,{otp:["Invalid or expired OTP."]}]],
+  ["POST",/^\/customers\/create\/verify-otp\/$/,(m,q,b)=>b.otp===SIM.otp?[201,{message:"Customer created",id:uuid()}]:[400,{otp:["Invalid or expired OTP."]}]],
   ["GET",/^\/vehicle-types\/$/,()=>[200,DB.vtypes]],
   ["GET",/^\/vehicle-makes\/$/,()=>[200,DB.makes]],
   ["GET",/^\/vehicle-models\/$/,(m,q)=>[200,(DB.models[q.make_id]||[]).map((n,i)=>({id:q.make_id+"-"+i,name:n}))]],
@@ -1241,7 +1243,7 @@ function netLbl(){const l=$("#netlbl");if(l)l.textContent=`API · ${CFG.live?(S&
 const NOW=Date.now();
 const ago=(d,h=0)=>new Date(+TODAY-d*864e5-h*36e5).toISOString();
 /* Device lookups (GET /technician/device/details/?search=) — the app's tip IMEIs */
-const mkDev=(o)=>({id:crypto.randomUUID?crypto.randomUUID():String(Math.random()),uin:null,firmware_version:"1.2.3",device_type:"GPS Tracker",device_expiry:"2027-03-31",
+const mkDev=(o)=>({id:uuid(),uin:null,firmware_version:"1.2.3",device_type:"GPS Tracker",device_expiry:"2027-03-31",
   primary_sim_number:null,secondary_sim_number:null,primary_sim_provider:null,secondary_sim_provider:null,primary_sim_activated:false,primary_sim_activation_date:null,
   secondary_sim_activated:false,secondary_sim_activation_date:null,tertiary_sim_activated:false,tertiary_sim_activation_date:null,is_installed:false,vehicle_number:null,current_operator:{value:0,label:"Unknown"},...o});
 DB.devices={
@@ -1305,6 +1307,8 @@ const VLTD_CMDS=[
 
 /* routes the app calls that need app-shaped responses (prepended → take precedence) */
 ROUTES.unshift(
+  /* new-account OTP: the app's demo hint is 1916 */
+  ["POST",/^\/customers\/create\/verify-otp\/$/,(m,q,b)=>b.otp==="1916"?[201,{message:"Customer created",id:uuid(),username:String(b.mobile_number||"").replace(/\D/g,"").slice(-10),password:"Ts@"+Math.random().toString(36).slice(2,8)}]:[400,{otp:["Invalid or expired OTP."]}]],
   ["GET",/^\/jobs\/$/,(m,q)=>{const ps=+q.page_size||12,p=+q.page||1,all=DB.jobs.filter(j=>j.status!=="discarded"&&(!q.status||j.status===q.status));return[200,{count:all.length,total_pages:Math.max(1,Math.ceil(all.length/ps)),current_page:p,page_size:ps,results:all.slice((p-1)*ps,p*ps).map(({form_data,...j})=>j)}]}],
   ["POST",/^\/forgot-password\/otp\/send\/$/,(m,q,b)=>b.username?[200,{message:"OTP sent",otp_send:true}]:[400,{username:["This field is required."]}]],
   ["GET",/^\/device\/gps-check\/$/,(m,q)=>{const d=devQ(q);if(!d)return[404,{error:"Device not found"}];const fix=!SIM.gpsFail?.[d.imei];return[200,{imei:d.imei,has_data:true,checks:[pass("gps_fix","GPS Fix",fix?1:0,fix?"pass":"fail"),pass("gps_coordinates","GPS Coordinates",{latitude:9.9816,longitude:76.2999})]}]}],
@@ -1766,8 +1770,8 @@ function aAcct(){const w=W2(),a=w.acct;segBind(V,"[data-seg=am2]",v=>{a.mode=v;r
   V.querySelectorAll("[data-ex]").forEach(i=>i.oninput=()=>a.extra[i.dataset.ex]=i.value);
   $("#aso")&&($("#aso").onclick=async()=>{try{await api("POST","/customers/create/send-otp/",{company_name:a.nw.company_name,customer_name:a.nw.customer_name,mobile_number:a.nw.mobile_number.replace(/\s/g,"")});a.otpSent=true;rerender()}catch(e){toast(e.message,"","warning","var(--warn)")}});
   $("#aotp")&&($("#aotp").oninput=e=>a.otp=e.target.value);
-  $("#avf")&&($("#avf").onclick=async()=>{try{if(a.otp!=="1916")throw new Error("Incorrect OTP. The demo OTP is 1916.");await api("POST","/customers/create/verify-otp/",{mobile_number:a.nw.mobile_number,otp:SIM.otp});
-      a.linked={kind:"new",name:a.nw.customer_name,co:a.nw.company_name,phone:a.nw.mobile_number,username:a.nw.mobile_number.replace(/\D/g,"").slice(-10),password:"Ts@"+Math.random().toString(36).slice(2,8)};SFX.success();rerender()}catch(e){SFX.err();toast(e.message,"","warning","var(--warn)")}});
+  $("#avf")&&($("#avf").onclick=async()=>{try{const d=await api("POST","/customers/create/verify-otp/",{mobile_number:a.nw.mobile_number.replace(/\s/g,""),otp:a.otp});
+      a.linked={kind:"new",name:a.nw.customer_name,co:a.nw.company_name,phone:a.nw.mobile_number,username:d.username||a.nw.mobile_number.replace(/\D/g,"").slice(-10),password:d.password||"—"};SFX.success();rerender()}catch(e){SFX.err();toast(e.message,"","warning","var(--warn)")}});
   $("#arm")&&($("#arm").onclick=()=>confirmSheet({icon:"trash",title:"Remove Linked Account?",body:"You'll need to search or create an account again to relink this device.",ok:"Remove Account",danger:true,run:async()=>{a.linked=null;rerender()}}))}
 
 /* ---------- step 4: vehicle (Vaahan fetch, mock in the app) ---------- */
@@ -1899,7 +1903,7 @@ async function submitReport(){const w=W2(),r=w.rp,c=w.fam==="comp",all=RP_GROUPS
   if(!r.decl)E.push("You must check the Technician Declaration checkbox.");
   if(E.length){r.errs=E;SFX.err();rerender();setTimeout(()=>{const d=V.querySelector(".danger:last-of-type");d&&d.scrollIntoView({behavior:"smooth",block:"center"})},60);return}
   const s=sheet(`<div class="stack center" style="padding:16px 0"><span class="spin" style="width:42px;height:42px;border-width:4px;color:var(--acc)"></span><b class="t-h">Uploading final diagnostic report...</b></div>`,null,{lock:true});
-  await sleep(1500);closeSheet(s);r.errs=null;if(w.id)api("DELETE",`/jobs/${w.id}/discard/`).catch(()=>{});S.saved=null;w.stage=6;go("install")}
+  await sleep(1500);closeSheet(s);r.errs=null;w.stage=6;go("install")}
 
 /* ---------- stage 6: success ---------- */
 function insSuccess(){const w=W2(),c=w.fam==="comp",d=w.dev||{},L=w.acct.linked||{},reg=w.veh.reg||"KL 07 CD 8899";
