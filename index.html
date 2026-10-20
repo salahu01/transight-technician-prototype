@@ -659,6 +659,36 @@ h1,h2,h3,p{margin:0}
 .term .tp{color:#79C0FF}.term .tk{color:#7EE787}.term .tr{color:#E3B341;word-break:break-all}.term .tm{color:#8B949E}
 .tcp{margin-top:4px;padding:3px 8px;border-radius:6px;background:#ffffff14;color:#C9D1D9!important;font:600 10px/14px var(--f)}
 
+/* ---------- 21. NETWORK MONITOR (outside the phone; team-only) ---------- */
+body.np-on .stage{padding-right:436px}
+.netp{position:fixed;top:56px;right:0;bottom:0;width:420px;z-index:50;display:flex;flex-direction:column;background:#141619;border-left:1px solid #000;color:#d6d9de;font:500 12px/16px -apple-system,var(--f);box-shadow:-20px 0 40px -20px #000}
+@media (max-width:900px){.netp{width:100%}body.np-on .stage{padding-right:16px}}
+.np-h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #000}
+.np-t{display:grid;gap:2px}.np-t b{font:700 15px/18px -apple-system,var(--f);color:#fff}.np-t span{color:#8b919a}
+.np-x{width:28px;height:28px;border-radius:8px;background:#22262b;color:#c9ced6}
+.np-c{display:grid;gap:8px;padding:12px 16px;border-bottom:1px solid #000}
+.np-seg{display:grid;grid-template-columns:1fr 1fr;background:#22262b;border-radius:8px;padding:3px}
+.np-seg button{padding:6px;border-radius:6px;color:#a1a7b0;font-weight:600}.np-seg button.on{background:#3a3f46;color:#fff}
+.np-in{width:100%;background:#0d0f11;border:1px solid #2a2f35;border-radius:8px;padding:7px 10px;color:#e6e8eb;font:500 12px/16px var(--m);outline:0}
+.np-in:focus{border-color:#4c9bff}.np-row{display:flex;gap:8px}
+.np-b{padding:6px 10px;border-radius:8px;background:#22262b;color:#d6d9de;font-weight:600;white-space:nowrap}
+.np-stats{display:flex;gap:12px;flex-wrap:wrap;color:#8b919a}.np-stats b{color:#e6e8eb}.np-stats .ok b{color:#5be39c}.np-stats .er b{color:#ff8589}
+.np-list{flex:1;overflow:auto}
+.np-r{display:grid;grid-template-columns:52px 1fr auto auto;grid-template-rows:auto auto;column-gap:8px;width:100%;text-align:left;padding:8px 16px;border-bottom:1px solid #1d2024}
+.np-r:hover{background:#1b1e22}.np-r.sel{background:#1f2b3d}.np-r.bad .np-s{color:#ff8589}.np-r.pend{opacity:.8}
+.np-m{font:700 10px/1 var(--m);padding:4px 0;border-radius:4px;text-align:center;background:#1f3550;color:#8dbdff;align-self:center}
+.np-m.POST{background:#173c2a;color:#5be39c}.np-m.PATCH{background:#3d3214;color:#ffc44d}.np-m.DELETE{background:#43191b;color:#ff8589}
+.np-p{font:500 12px/16px var(--m);color:#e6e8eb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center}
+.np-s{font:700 12px/16px var(--m);color:#5be39c;align-self:center}.np-ms{color:#8b919a;align-self:center;min-width:48px;text-align:right}
+.np-tm{grid-column:2/5;color:#6b7179;font-size:11px}
+.np-spin{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #8dbdff;border-right-color:transparent;animation:rot .8s linear infinite}
+.np-empty{padding:28px 16px;text-align:center;color:#6b7179}
+.np-d{max-height:48%;overflow:auto;border-top:1px solid #000;background:#0f1113;padding:12px 16px;display:grid;gap:8px}
+.np-dh{display:flex;gap:8px;align-items:center}.np-dh b{color:#fff}.np-dh span:not(.np-m){color:#8b919a;flex:1}.np-dh .np-m{width:52px}
+.np-url{font:500 11px/16px var(--m);color:#79c0ff;word-break:break-all}
+.np-l{color:#8b919a;text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+.np-d pre{margin:0;font:500 11px/16px var(--m);color:#c9d1d9;white-space:pre-wrap;word-break:break-all;background:#0a0c0e;border:1px solid #1d2024;border-radius:8px;padding:10px}
+
 </style>
 </head>
 <body>
@@ -838,6 +868,17 @@ h1,h2,h3,p{margin:0}
     <div class="homebar"></div>
   </div></div></div>
 </div>
+<aside class="netp" id="netp" aria-label="Network monitor" hidden>
+  <div class="np-h"><div class="np-t"><b>Network</b><span id="npsub">Live API traffic from the app</span></div><button class="np-x" id="npx" aria-label="Close">✕</button></div>
+  <div class="np-c">
+    <div class="np-seg" id="npmode"><button data-v="demo">Demo server</button><button data-v="live">Live API</button></div>
+    <input class="np-in" id="npbase" spellcheck="false">
+    <div class="np-row"><input class="np-in" id="npq" placeholder="Filter path…"><button class="np-b" id="npclr">Clear</button></div>
+    <div class="np-stats" id="npstats"></div>
+  </div>
+  <div class="np-list" id="nplist"></div>
+  <div class="np-d" id="npd" hidden></div>
+</aside>
 <script>
 /* =====================================================================
    STARTER engine.js — production-prototype skill (proven on Biko + Kilo)
@@ -2077,7 +2118,38 @@ function aVlCmds(){const v=S.vl;$("#vch").onclick=()=>{v.step=1;go("vltd","b")};
 
 /* ---------- chrome + boot ---------- */
 LIVE=null;
-$("#netbtn").onclick=apiSheet;
+
+/* =====================================================================
+   NETWORK MONITOR — team-only side panel outside the phone (like DevTools › Network).
+   Streams every api() call live: method, path, status, time, source; click for request/response.
+   ===================================================================== */
+const NP={open:false,sel:null,q:""};
+const NPE={p:$("#netp"),list:$("#nplist"),d:$("#npd"),stats:$("#npstats"),base:$("#npbase"),q:$("#npq"),mode:$("#npmode"),sub:$("#npsub")};
+const npTime=t=>t.toLocaleTimeString("en-GB",{hour12:false})+"."+String(t.getMilliseconds()).padStart(3,"0");
+function npPaint(){if(!NP.open)return;const q=NP.q.toLowerCase(),L=NET.filter(r=>!q||r.path.toLowerCase().includes(q));
+  const ok=NET.filter(r=>String(r.st).startsWith("2")).length,err=NET.filter(r=>r.st!=="…"&&!String(r.st).startsWith("2")).length,pend=NET.filter(r=>r.st==="…").length;
+  const done=NET.filter(r=>r.st!=="…"),avg=done.length?Math.round(done.reduce((a,r)=>a+r.ms,0)/done.length):0;
+  NPE.stats.innerHTML=`<span><b>${NET.length}</b> calls</span><span class="ok"><b>${ok}</b> 2xx</span><span class="er"><b>${err}</b> errors</span><span><b>${pend}</b> pending</span><span><b>${avg}</b> ms avg</span>`;
+  NPE.sub.textContent=CFG.live?(S&&S.fbWarned?"Live API unreachable — falling back to demo data":"Live · "+CFG.base.replace(/^https?:\/\//,"")):"Demo server (in-browser mock, postman-v6 shapes)";
+  NPE.mode.querySelectorAll("button").forEach(b=>b.classList.toggle("on",(b.dataset.v==="live")===CFG.live));
+  NPE.list.innerHTML=L.length?L.map(r=>{const i=NET.indexOf(r),st=String(r.st);return`<button class="np-r ${NP.sel===r?"sel":""} ${st==="…"?"pend":st.startsWith("2")?"":"bad"}" data-i="${i}">
+      <span class="np-m ${r.m}">${r.m}</span><span class="np-p">${esc(r.path)}</span><span class="np-s">${st==="…"?'<i class="np-spin"></i>':st}</span><span class="np-ms">${st==="…"?"":r.ms+" ms"}</span><span class="np-tm">${npTime(r.t)} · ${r.src}</span></button>`}).join("")
+    :`<div class="np-empty">${NET.length?"No calls match the filter.":"No requests yet. Use the app — every API call appears here live."}</div>`;
+  NPE.list.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{NP.sel=NET[+b.dataset.i];npPaint()});
+  const r=NP.sel;NPE.d.hidden=!r;if(r)NPE.d.innerHTML=`<div class="np-dh"><span class="np-m ${r.m}">${r.m}</span><b>${r.st}</b><span>${r.ms} ms · ${r.src}</span><button class="np-b" id="npcurl">Copy cURL</button><button class="np-x" id="npdx" aria-label="Close details">✕</button></div>
+    <code class="np-url">${esc(CFG.base+CFG.prefix+r.path)}</code>
+    ${r.req?`<span class="np-l">Request body</span><pre>${esc(JSON.stringify(r.req,null,2))}</pre>`:""}<span class="np-l">Response</span><pre>${r.res?esc(JSON.stringify(r.res,null,2)):"waiting…"}</pre>`;
+  if(r){$("#npdx").onclick=()=>{NP.sel=null;npPaint()};$("#npcurl").onclick=()=>{try{navigator.clipboard.writeText(`curl -X ${r.m} '${CFG.base}${CFG.prefix}${r.path}' -H 'Authorization: Bearer <token>'${r.req?` -H 'Content-Type: application/json' -d '${JSON.stringify(r.req)}'`:""}`)}catch{}$("#npcurl").textContent="Copied"}}}
+function npToggle(on){NP.open=on??!NP.open;NPE.p.hidden=!NP.open;document.body.classList.toggle("np-on",NP.open);fit();npPaint()}
+/* live stream: repaint on every request start/finish (netLbl runs on both) */
+const _netLbl=netLbl;netLbl=function(){_netLbl();npPaint()};
+const _api=api;api=function(...a){const p=_api(...a);npPaint();return p};
+NPE.mode.querySelectorAll("button").forEach(b=>b.onclick=()=>{CFG.live=b.dataset.v==="live";S.fbWarned=0;S.inst=null;S.saved=null;netLbl()});
+NPE.base.value=CFG.base;NPE.base.onchange=()=>{CFG.base=NPE.base.value.trim();npPaint()};
+NPE.q.oninput=()=>{NP.q=NPE.q.value;npPaint()};$("#npclr").onclick=()=>{NET.length=0;NP.sel=null;netLbl()};$("#npx").onclick=()=>npToggle(false);
+/* keep the phone fitted beside the panel */
+fit=function(){const pw=NP.open&&innerWidth>900?420:0,W=418,H=890,sc=Math.min(1,(innerWidth-32-pw)/W,(innerHeight-96)/H);$("#device").style.transform=`scale(${sc})`;$("#fit").style.width=W*sc+"px";$("#fit").style.height=H*sc+"px"};
+$("#netbtn").onclick=()=>npToggle();
 boot();
 
 </script>
