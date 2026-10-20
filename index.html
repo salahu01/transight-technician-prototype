@@ -694,6 +694,21 @@ body.np-on .stage{padding-right:436px}
 .tabs:has(button.on[data-t=home]) .ind{border-radius:999px 14px 14px 999px!important}
 .tabs:has(button.on[data-t=profile]) .ind{border-radius:14px 999px 999px 14px!important}
 
+/* ---------- 23. SINGLE APP THEME (lib/ui/core/themes/app_colors.dart) ----------
+   background #FFFFFF · primary #670824 · onPrimary #FFFFFF · onBackground #131313 · link #2A80F9 */
+.phone[data-theme="app"]{
+  --bg:#F6F6F7;--surface:#FFFFFF;--surface-2:#F0F0F0;--text:#131313;--text-2:#5C5C5C;--line:#E7E7E7;
+  --hair:#1313130d;--hair-2:#13131314;
+  --acc:#670824;--acc-2:#8E1A3C;--acc-ink:#FFFFFF;--acc-soft:#67082414;--acc-t:#670824;
+  --glass:rgba(255,255,255,.82);--glass-line:rgba(255,255,255,.95);
+  --sh-1:0 0 0 1px var(--hair),0 6px 18px -10px #13131322;--sh-2:0 18px 40px -18px #13131338;
+  --ok:#157A4F;--ok-bg:#157A4F17;--ok-ink:#157A4F;--warn:#C93636;--warn-bg:#C9363614;--warn-ink:#B02A2A;
+  --info:#2A80F9;--info-bg:#2A80F914;--info-ink:#1E66CC;--amb:#B45309;--amb-bg:#B4530914;--amb-ink:#B45309;
+  --floor:#EEEEEF;--floor-2:#E4E4E6;--case-1:#FBFBFB;--case-2:#C9C9CC;--case-3:#8A8A8F;--face:#1B1B1D;--stripe:#670824;
+  color-scheme:light}
+.login .logo path{fill:var(--acc)}.login .logo .lg-c{fill:var(--acc-2)}
+.login .trust .badge{background:var(--surface-2);color:var(--text)}
+
 </style>
 </head>
 <body>
@@ -1304,7 +1319,7 @@ SIM.gpsFail={"868329085923443":true};
    ===================================================================== */
 const R={},A={};
 const APP={tabs:["home","inst","jobs","help","profile"],home:"home",full:["splash","login"],noLive:["splash","login","install","replace","cmd","vltd"],bumpIds:[],
-  theme:scr=>["splash","login"].includes(scr)?"brand":curFam()};
+  theme:scr=>scr==="splash"?"brand":"app"};
 const curFam=()=>(["install","replace","cmd","vltd"].includes(S.scr)&&S.fam)?S.fam:"disc";
 
 /* ---------- sound: outcome cues + 3 domain one-shots ---------- */
@@ -1392,9 +1407,9 @@ A.splash=()=>{const t=setTimeout(()=>S.scr==="splash"&&go("login"),2100);$("#spl
   api("POST","/version-check/",{installed_version:CFG.version,platform:CFG.platform}).then(v=>{if(v.force_update)island("Update required","Version "+v.latest_version+" is available","download","var(--warn)",4000)}).catch(()=>{})};
 
 /* =================== LOGIN =================== */
-R.login=()=>{const e=S.loginErr;return`<div class="brandbg"></div><form class="login" id="lf" autocomplete="off">
-  <div class="hdr st">${LOGO}<h1 class="t-display" style="color:#fff">Welcome!</h1><p class="t-body mute">Continue with your username — usually the mobile number registered with Transight.</p></div>
-  <div class="trust st"><span class="badge t-label" style="background:#ffffff12;color:#fff">${ic("shield","xs")} Encrypted</span><span class="badge t-label" style="background:#ffffff12;color:#fff">${ic("lock","xs")} JWT session</span><span class="badge t-label" style="background:#ffffff12;color:#fff">${ic("cpu","xs")} Device-bound</span></div>
+R.login=()=>{const e=S.loginErr;return`<form class="login" id="lf" autocomplete="off">
+  <div class="hdr st">${LOGO}<h1 class="t-display">Welcome!</h1><p class="t-body mute">Continue with your username — usually the mobile number registered with Transight.</p></div>
+  <div class="trust st"><span class="badge t-label" >${ic("shield","xs")} Encrypted</span><span class="badge t-label" >${ic("lock","xs")} JWT session</span><span class="badge t-label" >${ic("cpu","xs")} Device-bound</span></div>
   <div class="stack-2 st"><label class="t-label up mute" for="lu">Username</label>
     <div class="field ${S.luErr||fieldErr(e,"username")?"err":""}">${ic("user","s")}<input id="lu" autocapitalize="none" spellcheck="false" value="${esc(S.lu??"9876543210")}" placeholder="Username or mobile number"></div>
     ${S.luErr?`<span class="err-msg">${ic("warning","xs")} ${S.luErr}</span>`:""}</div>
@@ -1652,7 +1667,7 @@ function goBackStep(){const w=W2();/* first undo the current step's result, then
 function insSeries(){return`<div class="stack-1 st"><h1 class="t-title">Select Device Series</h1><span class="t-meta mute">Select the device series you are installing today</span></div>
   ${[["comp","i Compass Series","Premium Dual SIM eSIM","AIS-140 compliant telematics with built-in embedded eSIM (Idea + BSNL failover), tilt calibration & customer account setup."],
      ["disc","Discovery Series","Standard IoT 4G","Optimized for 4G telematics. Features standard wiring, digital inputs, pre-assigned physical Airtel SIM, and optional relay immobilizer/fuel checks."]].map(([f,t,b,d])=>`
-   <button class="series press st" data-fam="${f}" data-theme="${f}"><span class="series-art">${heroSVG(f)}</span><span class="stack-2"><span class="row"><b class="t-h">${t}</b><span class="badge t-label sbadge">${b}</span></span><span class="t-meta mute">${d}</span></span></button>`).join("")}`}
+   <button class="series press st" data-fam="${f}"><span class="series-art">${heroSVG(f)}</span><span class="stack-2"><span class="row"><b class="t-h">${t}</b><span class="badge t-label sbadge">${b}</span></span><span class="t-meta mute">${d}</span></span></button>`).join("")}`}
 function aSeries(){V.querySelectorAll("[data-fam]").forEach(b=>b.onclick=()=>{const w=W2();w.fam=b.dataset.fam;S.fam=w.fam;w.stage=1;hap("medium");go("install")})}
 
 /* ---------- step 1: device ---------- */
@@ -2004,7 +2019,7 @@ A.cmd=()=>{const c=S.cmd;$("#fbk").onclick=()=>{if(c.step===1){if(c.dev)return c
   [null,aCmdId,aCmdScan,aCmdFix,aCmdRep][c.step]()};
 function cmdIdentify(){const c=S.cmd;
   if(!c.fam)return`<div class="stack-1 st"><h1 class="t-title">Select Device Type</h1><span class="t-meta mute">Select iCompass or Discovery to choose the device.</span></div>
-    ${[["comp","iCompass","AIS-140 · dual eSIM"],["disc","Discovery","4G IoT tracker"]].map(([f,t,s])=>`<button class="series press st" data-cf="${f}" data-theme="${f}"><span class="series-art">${heroSVG(f)}</span><span class="row"><span class="stack-1"><b class="t-h">${t}</b><span class="t-meta mute">${s}</span></span><span class="feat-go" style="width:40px;height:40px">${ic("arrow-right","s")}</span></span></button>`).join("")}`;
+    ${[["comp","iCompass","AIS-140 · dual eSIM"],["disc","Discovery","4G IoT tracker"]].map(([f,t,s])=>`<button class="series press st" data-cf="${f}"><span class="series-art">${heroSVG(f)}</span><span class="row"><span class="stack-1"><b class="t-h">${t}</b><span class="t-meta mute">${s}</span></span><span class="feat-go" style="width:40px;height:40px">${ic("arrow-right","s")}</span></span></button>`).join("")}`;
   if(c.fam==="comp"&&!c.method)return`<div class="stack-1 st"><h1 class="t-title">Identify iCompass Device</h1><span class="t-meta mute">Select IMEI or UIN to identify the device.</span></div>
     ${[["imei","IMEI Number","15-digit device number","barcode"],["uin","UIN Number","Unique Identification Number","doc"]].map(([k,t,s,i])=>`<button class="opt press st" data-cm="${k}"><span class="tile acc">${ic(i)}</span><span class="stack-1"><b class="t-h">${t}</b><span class="t-meta mute">${s}</span></span>${ic("chevron","s")}</button>`).join("")}`;
   if(c.dev){const d=c.dev,e=!!d.secondary_sim_provider;return`<div class="stack-1 st"><h1 class="t-title">Confirm ${famName(c.fam)} Device</h1><span class="t-meta mute">Check the device and SIM details, then confirm.</span></div>
