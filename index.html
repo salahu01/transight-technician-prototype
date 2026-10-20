@@ -1707,18 +1707,21 @@ function insSim(){const w=W2(),d=w.dev,e=isEsim(),s=w.sim;
     ${!e?(s.bypass?`<div class="resume st" style="background:var(--amb-bg)"><span class="tile amb">${ic("info")}</span><span class="stack-2"><span class="t-meta">SIM verification bypassed — activation will sync in the background once the carrier API responds. You can proceed.</span><button class="btn ghost sm press" id="sret" style="justify-self:start">Retry Verification</button></span><span></span></div>`
       :`<button class="btn ghost press st" id="sown">${ic("sim","s")} Using Your Own M2M SIM?</button><span class="t-label mute st">Make sure it's whitelisted on the Transight Server, then insert it and continue. Tap Next to proceed.</span>`):""}`;
   const gate=w.fam==="comp"&&s.sos?["warn","SOS alert is ON — turn it off to proceed (otherwise alerts will keep generating)."]:e&&s.secondary?["warn","eSIM is on BSNL (Secondary) — switch back to IDEA (Primary) to proceed."]:["ok","All diagnostics are in default states. Ready to proceed."];
-  const sigL=["Very Good","Good","Bad"][s.sig],alert=w.fam==="comp"&&s.sos?"14 (SOS Distress Alert)":!s.main?"4 (Main Power Cut (Battery Mode))":!s.fix?"5 (No GPS Fix (Invalid Packet))":"1 (Normal Packet)";
+  const T=s.tel&&s.tel.has_data?s.tel:null,num=x=>x&&typeof x==="object"?x.value:x;
+  const sigApp=v=>v>=20&&v<=31?"Excellent":v>=15?"Very Good":v>=10?"Good":v>=5?"Fair":"Poor";
+  const sigL=T?sigApp(+num(T.signal_strength)):["Very Good","Good","Bad"][s.sig],alert=w.fam==="comp"&&s.sos?"14 (SOS Distress Alert)":!s.main?"4 (Main Power Cut (Battery Mode))":!s.fix?"5 (No GPS Fix (Invalid Packet))":"1 (Normal Packet)";
+  const live={time:T?String(T.sent_at||"").slice(11,19)||"—":"10:15:32",volt:T&&num(T.input_power_voltage)!=null?(+num(T.input_power_voltage)).toFixed(1)+"V":null,fix:T?+num(T.gps_fix_status)>0:s.fix,ign:T?+num(T.ignition)>0:s.ign};
   return`${head}<div class="devcard st"><div class="row"><span class="inl"><span class="tile ok">${ic("check")}</span><b class="t-h">${e?"eSIM Activated Successfully":"SIM Activated Successfully"}</b></span>${bd("Active","ok")}</div>
       <div class="sims">${(e?[[d.primary_sim_provider+" (Primary)",s.secondary?"Standby (Ready)":"Connected",!s.secondary],[d.secondary_sim_provider+" (Secondary)",s.secondary?"Connected":"Standby (Ready)",s.secondary]]:[[d.primary_sim_provider+" (Primary SIM)","Connected",true]]).map(([l,st,on])=>`<div class="sim ${on?"on":""}"><span class="t-label up">${l}</span><b class="t-num">${st}</b></div>`).join("")}</div>
       <div class="txcard flat">${[["Operator",s.secondary?d.secondary_sim_provider:d.primary_sim_provider],["Status","Active"],["Signal",sigL]].map(([k,v])=>`<div class="kvr"><span class="t-meta mute">${k}</span><b class="t-num">${esc(v)}</b></div>`).join("")}</div><span class="t-label mute t-mono">ICCID: ${esc(d.iccid)}</span></div>
     <div class="resume st" style="background:var(--${gate[0]}-bg)"><span class="tile ${gate[0]}">${ic(gate[0]==="ok"?"shield":"warning")}</span><span class="t-meta">${gate[1]}</span><span></span></div>
-    <div class="sec st"><span class="t-label up mute">Live Telemetry Data</span><span class="t-label mute">tap tiles to simulate</span></div>
+    <div class="sec st"><span class="t-label up mute">Live Telemetry Data</span><span class="t-label mute">${T?"from live-telemetry API":"no live data · tap tiles to simulate"}</span></div>
     <div class="tgrid st">
-      ${ttile("tl","Last Data Received",s.live?"LIVE":"HISTORY",s.live?"ok":"amb","10:15:32")}
-      ${ttile("tm","Input Power Voltage",s.main?"MAIN":"BATT",s.main?"ok":"warn",s.main?(w.fam==="comp"?"12.3V":"13.2V"):"3.9V")}
-      ${ttile("tf","GPS Fix Status",s.fix?"FIX":"NO FIX",s.fix?"ok":"warn",s.fix?"Valid GPS Fix":"Invalid")}
-      ${ttile("ti","Ignition ACC",s.ign?"ON":"OFF",s.ign?"ok":"",s.ign?"ON":"OFF")}
-      ${ttile("ts","Signal Strength",sigL.toUpperCase(),s.sig===2?"warn":"ok",`<span class="sigb l${4-s.sig} ${s.sig===2?"warn-t":"ok-t"}"><i></i><i></i><i></i><i></i></span>`)}
+      ${ttile("tl","Last Data Received",T?"LIVE":s.live?"LIVE":"HISTORY",T||s.live?"ok":"amb",live.time,T)}
+      ${ttile("tm","Input Power Voltage",T?"LIVE":s.main?"MAIN":"BATT",T||s.main?"ok":"warn",live.volt||(s.main?(w.fam==="comp"?"12.3V":"13.2V"):"3.9V"),T)}
+      ${ttile("tf","GPS Fix Status",live.fix?"FIX":"NO FIX",live.fix?"ok":"warn",live.fix?"Valid GPS Fix":"Invalid",T)}
+      ${ttile("ti","Ignition ACC",live.ign?"ON":"OFF",live.ign?"ok":"",live.ign?"ON":"OFF",T)}
+      ${ttile("ts","Signal Strength",sigL.toUpperCase(),/Poor|Fair|Bad/.test(sigL)?"warn":sigL==="Good"?"amb":"ok",T?`${num(T.signal_strength)} · ${sigL}`:`<span class="sigb l${4-s.sig} ${s.sig===2?"warn-t":"ok-t"}"><i></i><i></i><i></i><i></i></span>`,T)}
       ${ttile("tc","Current Operator",e?"eSIM Dual Carrier":"Physical SIM","info",esc(s.secondary?d.secondary_sim_provider:d.primary_sim_provider))}</div>
     <div class="kvr card st"><span class="t-meta mute">Alert ID / Packet Type</span><b class="t-num">${alert}</b></div>
     ${e?`<button class="btn ghost press st" id="swp">${ic("replace","s")} ${s.secondary?"Switch back to IDEA (Primary)":"Simulate failover to BSNL"}</button>`:""}
@@ -1726,7 +1729,7 @@ function insSim(){const w=W2(),d=w.dev,e=isEsim(),s=w.sim;
       <div class="set"><span class="tile ${s.tilt?"ok":"amb"}">${ic("layers","s")}</span><span class="main"><b class="t-num">Tilt Sensor Calibration</b><span class="t-meta mute">${s.tilt?"Status: Calibrated (0.0°) ✅":"Drift Alert (7.5°) ⚠️"}</span></span>${tgl("tgt",s.tilt)}</div>
       <div class="set"><span class="tile ${s.sos?"warn":"ok"}">${ic("alarm","s")}</span><span class="main"><b class="t-num">SOS Button Functional Test</b><span class="t-meta mute">${s.sos?"Server Packet: Distress Signal Active 🚨":"Signal Normal ✅"}</span></span>${tgl("tgsos",s.sos)}</div></div>`:""}
     <div class="danger st"><b class="t-num warn-t">Device Hardware Error / No Telemetry Data?</b><span class="t-meta mute">If this unit has a hardware defect or fails telemetry, replace it with a new device. Vehicle details will be preserved.</span><button class="btn danger sm press" id="srep" style="justify-self:start">${ic("replace","s")} Replace Device &amp; Rescan</button></div>`}
-const ttile=(id,l,b,k,v)=>`<button class="tt press" id="${id}"><span class="row"><span class="t-label mute">${l}</span>${bd(b,k)}</span><b class="t-num">${v}</b></button>`;
+const ttile=(id,l,b,k,v,lock)=>`<button class="tt ${lock?"":"press"}" id="${id}" ${lock?"disabled":""}><span class="row"><span class="t-label mute">${l}</span>${bd(b,k)}</span><b class="t-num">${v}</b></button>`;
 function aSim(){const w=W2(),s=w.sim;
   $("#srf")&&($("#srf").onclick=async()=>{try{w.dev=await api("GET","/device/details/?search="+w.dev.imei);toast("SIM details refreshed.","","sim","var(--info)")}catch(e){toast(e.message,"","warning","var(--warn)")}rerender()});
   $("#sown")&&($("#sown").onclick=()=>{s.bypass=true;hap("medium");rerender()});$("#sret")&&($("#sret").onclick=()=>{s.bypass=false;activateSim()});
@@ -1735,9 +1738,13 @@ function aSim(){const w=W2(),s=w.sim;
   $("#swp")&&($("#swp").onclick=()=>{s.secondary=!s.secondary;SFX.relay();rerender()});
   $("#tgt")&&($("#tgt").onclick=()=>{s.tilt=!s.tilt;rerender()});$("#tgsos")&&($("#tgsos").onclick=()=>{s.sos=!s.sos;s.sos?SFX.alert():SFX.ok();rerender()});
   $("#srep")&&($("#srep").onclick=()=>confirmSheet({icon:"replace",title:"Replace Faulty Device?",body:"You will return to Step 1 to scan a new replacement device.",ok:"Replace",danger:true,run:async()=>{w.dev=null;w.imei="";w.sim=newIns().sim;w.stage=1;go("install","b")}}))}
+/* App (sim_activation_step.dart): with USE_LIVE_TELEMETRY_API=true (env/dev.json) Activate calls
+   GET /technician/device/live-telemetry/?imei= ; the dialog sits on the first phase until it answers, then shows Complete.
+   On an API error it still completes, without live data — same as the app. */
 async function activateSim(){const w=W2(),e=isEsim();const P=e?["Initializing eSIM Secure Element...","Registering Idea Cellular profile...","Registering BSNL Mobile profile...","Complete"]:["Connecting to Airtel...","Registering SIM on network...","Activating 2G IoT plan...","Complete"];
-  const s=sheet(`<div class="stack center"><div class="pring" id="apr" style="--p:0;width:96px;height:96px"><b id="apn">0%</b></div><b class="t-h" id="apt">${P[0]}</b><span class="t-meta mute">${e?"Dual-profile eSIM":"Physical SIM"} · ${esc(w.dev.imei)}</span></div>`,null,{lock:true});
-  for(let i=0;i<P.length;i++){s.querySelector("#apt").textContent=P[i];const p=Math.round((i+1)/P.length*100);s.querySelector("#apr").style.setProperty("--p",p);s.querySelector("#apn").textContent=p+"%";hap("select");await sleep(i===P.length-1?500:1000)}
+  const s=sheet(`<div class="stack center"><div class="pring" id="apr" style="--p:8;width:96px;height:96px"><b id="apn"><span class="spin" style="color:var(--acc)"></span></b></div><b class="t-h" id="apt">${P[0]}</b><span class="t-meta mute">${e?"Dual-profile eSIM":"Physical SIM"} · ${esc(w.dev.imei)}</span><span class="t-label mute t-mono">GET /device/live-telemetry/</span></div>`,null,{lock:true});
+  try{w.sim.tel=await api("GET","/device/live-telemetry/?imei="+w.dev.imei)}catch{w.sim.tel=null}
+  s.querySelector("#apt").textContent=P[3];s.querySelector("#apr").style.setProperty("--p",100);s.querySelector("#apn").textContent="100%";hap("select");await sleep(500);
   closeSheet(s);w.sim.on=true;SFX.success();rerender()}
 
 /* ---------- step 3: account ---------- */
