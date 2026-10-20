@@ -576,6 +576,20 @@ h1,h2,h3,p{margin:0}
 .vid .play{position:absolute;left:50%;top:50%;translate:-50% -50%;width:62px;height:62px;border-radius:50%;background:#fff;color:var(--acc);display:grid;place-items:center;box-shadow:0 10px 30px #0008}
 .vid .bar{position:absolute;left:14px;right:14px;bottom:14px;background:#ffffff33}
 
+/* ---------- 19. HOME BENTO (mirrors lib/ui/home: 2 rows, wide+narrow, swapped) ---------- */
+.view:has(.bento){padding-bottom:116px}
+.bento{flex:1;display:grid;grid-template-rows:1fr 1fr;gap:12px;min-height:440px}
+.brow{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+.brow:last-child{grid-template-columns:2fr 3fr}
+.qt{position:relative;overflow:hidden;border-radius:26px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;color:#fff;
+  background:radial-gradient(120% 90% at 100% 0%,color-mix(in srgb,var(--c) 55%,#fff 18%),transparent 60%),linear-gradient(160deg,color-mix(in srgb,var(--c) 88%,#fff 12%),var(--c));
+  box-shadow:inset 0 1px 0 #ffffff33,0 18px 34px -18px var(--c)}
+.qt-art{position:absolute;right:-26px;bottom:-26px;opacity:.13}.qt-art .ic{width:150px;height:150px}
+.qt.n .qt-art .ic{width:110px;height:110px}
+.qt-ic{width:46px;height:46px;border-radius:16px;display:grid;place-items:center;background:#ffffff26;box-shadow:inset 0 0 0 1px #ffffff2e;backdrop-filter:blur(6px)}
+.qt-ar{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ffffff26}
+.qt-tx{position:relative;display:grid;gap:4px}.qt-tx .t-meta{opacity:.82}
+
 </style>
 </head>
 <body>
@@ -1238,28 +1252,16 @@ async function loadJobs(force){if(S.jobs&&!force)return;S.jobsErr=null;
   try{const[d,c]=await Promise.all([api("GET","/jobs/?page=1&page_size=12"),api("GET","/jobs/saved-jobs-count/")]);S.jobs=d.results;S.jobsCount=d.count;S.savedCount=c.count}
   catch(e){S.jobsErr=e}if(["home","jobs"].includes(S.scr))rerender()}
 const greet=()=>{const h=+TODAY.toLocaleString("en-IN",{hour:"numeric",hour12:false,timeZone:"Asia/Kolkata"});return h<12?"Good morning":h<17?"Good afternoon":"Good evening"};
-R.home=()=>{const J=S.jobs,today=J?J.filter(j=>dayLbl(j.scheduled_at)==="Today"&&j.status!=="completed"):[],next=today[0],done=J?J.filter(j=>j.status==="completed").length:0;
-  const f=curFam();return`
-  <div class="row st"><div class="hello">${avatarHtml()}<div class="stack-1"><span class="t-meta mute">${greet()} · Tue 20 Oct</span><b class="t-h">${esc(S.me?.first_name||"Ravi")} ${esc(S.me?.last_name||"")}</b></div></div>
+R.home=()=>`
+  <div class="hello st">${avatarHtml()}<div class="stack-1 grow" style="min-width:0"><b class="t-h ell">${esc(S.me?.first_name||"Ravi")} ${esc(S.me?.last_name||"")}</b><span class="t-meta mute">Technician</span></div>
     <button class="icon-btn press ovv" id="bell" aria-label="Alerts">${ic("bell","s")}<span class="nd"></span></button></div>
-  <div class="stg hstage st"><div class="floor"></div>
-    <div class="hero idle">${heroSVG(f,{sig:S.dev?MAP.sig(S.tel?.signal_strength.value??20).lv-1:3})}</div>
-    <div class="fl" style="left:14px;top:14px"><span class="tile acc">${ic("calendar","xs")}</span><b class="t-num" id="kAssigned">${J?today.length:"–"} today</b></div>
-    <div class="fl" style="right:14px;top:14px;animation-delay:.1s,1.4s"><span class="tile ok">${ic("certificate","xs")}</span><b class="t-num">${J?done:"–"} certified</b></div>
-    <div class="fl" style="left:0;right:0;margin:0 auto;width:max-content;bottom:10px;animation-delay:.2s,1.8s;white-space:nowrap"><span class="tile info">${ic("radar","xs")}</span><b class="t-num">${S.dev?esc(S.dev.device_model)+" live":"No device linked"}</b></div></div>
-  ${S.savedCount?`<button class="resume press st" data-go="jobs" id="rs"><span class="tile amb">${ic("save")}</span><span class="stack-1"><b class="t-h">${S.savedCount} draft${S.savedCount>1?"s":""} waiting</b><span class="t-meta mute">Pick up where you paused · saved on server</span></span>${ic("chevron","s")}</button>`:""}
-  <div class="sec st"><span class="t-label up mute">Start a job</span><span class="t-meta mute">4 workflows</span></div>
-  <div class="qa st">
-    <button class="press hi" data-qa="installation"><span class="tile">${ic("plus")}</span><span class="arr">${ic("arrow-right","xs")}</span><span class="stack-1"><b class="t-h">New install</b><span class="t-meta mute">Device · SIM · vehicle · certify</span></span></button>
-    <button class="press" data-qa="replacement"><span class="tile info">${ic("replace")}</span><span class="arr">${ic("arrow-right","xs")}</span><span class="stack-1"><b class="t-h">Replace</b><span class="t-meta mute">Swap a faulty unit</span></span></button>
-    <button class="press" data-go="diag"><span class="tile ok">${ic("diag")}</span><span class="arr">${ic("arrow-right","xs")}</span><span class="stack-1"><b class="t-h">Diagnose</b><span class="t-meta mute">Live packets &amp; checks</span></span></button>
-    <button class="press" data-qa="maintenance"><span class="tile amb">${ic("tuning")}</span><span class="arr">${ic("arrow-right","xs")}</span><span class="stack-1"><b class="t-h">Maintenance</b><span class="t-meta mute">Service visit · VLTD</span></span></button></div>
-  <div class="sec st"><span class="t-label up mute">Next up</span><button class="t-meta acc-t" data-go="jobs">All jobs</button></div>
-  ${S.jobsErr?errBox(S.jobsErr,"rt"):!J?skelRows(2,148):next?today.slice(0,2).map(jobTile).join(""):`<div class="empty card st">${ic("calendar","l")}<b class="t-h">Day is clear</b><span class="t-meta mute">No more visits scheduled today.</span></div>`}`};
-A.home=()=>{loadJobs();$("#rt")&&($("#rt").onclick=()=>{S.jobs=null;rerender();loadJobs(1)});
-  $("#bell").onclick=alertsSheet;
-  V.querySelectorAll("[data-qa]").forEach(b=>b.onclick=()=>startWizard(null,b.dataset.qa));
-  bindJobTiles()};
+  <div class="sec st"><span class="t-label up mute">Quick Actions</span></div>
+  <div class="bento st">
+    <div class="brow">${qaTile("installation","New Installation","Start a new device setup","plus","#B3123F","w")}${qaTile("replacement","Replace Device","Swap an existing device with OTP","replace","#9A2E4C","n")}</div>
+    <div class="brow">${qaTile("commands","Commands","OTA device diagnostics & controls","tuning","#3F0516","n")}${qaTile("vltd","VLTD Activation","Live packet verification & activation commands","radar","#B5566F","w")}</div></div>`;
+const qaTile=(k,l,d,i,c,sz)=>`<button class="qt ${sz} press" data-qa="${k}" style="--c:${c}"><span class="qt-art">${ic(i)}</span><span class="qt-ic">${ic(i)}</span><span class="qt-ar">${ic("arrow-right","xs")}</span><span class="qt-tx"><b class="t-h">${l}</b><span class="t-meta">${d}</span></span></button>`;
+A.home=()=>{$("#bell").onclick=alertsSheet;
+  V.querySelectorAll("[data-qa]").forEach(b=>b.onclick=()=>{const k=b.dataset.qa;if(k==="installation"||k==="replacement")startWizard(null,k);else{S.famPref=k==="vltd"?"comp":S.famPref;go("diag")}})};
 
 function jobTile(j){const t=JT[j.job_type]||JT.installation,[sl,sk]=STAT[j.status]||["",""];
   return`<button class="job press st" data-job="${j.id}">
